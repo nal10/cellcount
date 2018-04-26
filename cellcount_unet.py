@@ -11,7 +11,9 @@ from keras.models import Model
 from keras.optimizers import Adam
 
 import fileIO
+import pdb
 
+base_path,_,_,rel_result_path = fileIO.set_paths()[0:4]
 
 # return im_train, im_train_labels, im_test, im_test_labels
 im = fileIO.load_IM()
@@ -32,6 +34,29 @@ del im_train_list
 
 im_train_labels = fileIO.stack_list(labels_train_list)
 del labels_train_list
+
+# Split data explicitly into training and test sets
+validation_split = 0.1
+test_inds = np.arange(np.size(im_train, 0))
+test_inds = test_inds[test_inds <= np.size(im_train, 0)*validation_split]
+
+im_test = im_train[test_inds]
+im_test_labels = im_train_labels[test_inds]
+
+im_train = np.delete(im_train, test_inds, axis=0)
+im_train_labels = np.delete(im_train_labels, test_inds, axis=0)
+
+#Conversion to float32. I'm guessing this saves some memory?
+im_train = im_train.astype('float32') / 255.
+im_train_labels = im_train_labels.astype('float32') / 255.
+im_test = im_test.astype('float32') / 255.
+im_test_labels = im_test_labels.astype('float32') / 255.
+
+#Reshape to add the 4th dimension
+im_train = np.reshape(im_train, (len(im_train), 512, 512, 1))
+im_train_labels = np.reshape(im_train_labels, (len(im_train_labels), 512, 512, 1))
+im_test = np.reshape(im_test, (len(im_test), 512, 512, 1))
+im_test_labels = np.reshape(im_test_labels, (len(im_test_labels), 512, 512, 1))
 
 inputs = Input(shape=(512, 512, 1), name='inputs')
 conv1 = Conv2D(64, 3, activation='relu', padding='same',
@@ -103,16 +128,17 @@ model = Model(inputs=[inputs], outputs=[conv10])
 model.compile(optimizer=Adam(lr=1e-4),
               loss='binary_crossentropy', metrics=['accuracy'])
 
-model_checkpoint = ModelCheckpoint(
-	'unet.h5', monitor='loss', verbose=1, save_best_only=True)
 
-model.fit(im_train, im_train_labels, batch_size=4, epochs=10, verbose=1, callbacks=[
-          model_checkpoint], validation_split=0.1, validation_data=None, shuffle=True)
+model_checkpoint = ModelCheckpoint(
+	base_path + rel_result_path + 'unet.h5', monitor='loss', verbose=1, save_best_only=True)
+
+model.fit({'inputs': im_train}, {'conv10': im_train_labels}, batch_size=4, epochs=10, verbose=1, callbacks=[
+          model_checkpoint], validation_data=({'inputs': im_test}, {'conv10': im_test_labels}), shuffle=True)
 
 
 # print('predict test data')
 # im_test_labels_predict = model.predict(im_test, batch_size=1, verbose=1)
-# #np.save('../dat/results/predicted_labels.npy', im_test_labels_predict)
+# np.save(base_path + rel_result_path + 'unet.h5', im_test_labels_predict)
 # return im_test_labels_predict
 
 # if __name__ == '__main__':

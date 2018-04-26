@@ -17,22 +17,31 @@ import pdb
 
 
 def set_paths():
-    """Return the pathname of the data directory."""
+    """Return the pathname of the data directory.
+    \nOutputs are: base_path, rel_IM_path, rel_label_path, rel_result_path"""
     hostname = socket.gethostname()
     if hostname == 'Fruity.local':
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
         rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
         rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
+        rel_result_path = 'dat/results/'
+    elif hostname == 'rohan-ai':
+        base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
+        rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
+        rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
+        rel_result_path = 'dat/results/'
     print('Base path set to: ' + base_path)
-    return base_path, rel_IM_path, rel_label_path
+
+    return base_path, rel_IM_path, rel_label_path, rel_result_path
 
 
 def get_fileid():
     """Return fileids for _raw.tif images in directory."""
+
     import os
     import glob
 
-    base_path, rel_IM_path, _ = set_paths()
+    base_path, rel_IM_path = set_paths()[0:2]
     search_pattern = base_path + rel_IM_path + '*raw.tif'
     print('Searching for pattern: ' + search_pattern)
     IMnames = glob.glob(search_pattern)
@@ -51,7 +60,7 @@ def get_fileid():
 
 def load_IM(**kwargs):
     """Return images in numpy array for all files listed in fileid."""
-    base_path, rel_IM_path, _ = set_paths()
+    base_path, rel_IM_path = set_paths()[0:2]
     if 'fileid' in kwargs:
         fileid = kwargs.pop('fileid')
     else:
@@ -78,7 +87,7 @@ def load_labels(**kwargs):
     fileid -- string containing number identifying an image file
     """
 
-    base_path, _, rel_label_path = set_paths()
+    base_path, _, rel_label_path = set_paths()[0:3]
     if 'fileid' in kwargs:
         fileid = kwargs.pop('fileid')
     else:
@@ -144,6 +153,7 @@ def stack_list(X_list):
     '''Puts contents of X_list into a single numpy array. Arrays are stacked in along axis = 0 in output X.
     input X_list is a 1d list. Each element is a 3d numpy array of same size along axis 1 and 2.
     output X is a 3d numpy array.'''
+    
     n_planes = 0
     for X in X_list:
         n_planes += np.size(X, 0)
@@ -152,12 +162,14 @@ def stack_list(X_list):
     X = np.zeros((n_planes, np.size(X_list[0], 1), np.size(X_list[0], 2)))
 
     #Pop the list entries into the array
-    this_plane = 0
-    while not X_list:
-        X[this_plane:this_plane + np.size(X_list[0], 1)] = X_list[0]
-        this_plane = this_plane + np.size(X_list[0], 1)
-        X_list.remove(0)
+    this_plane = int(0)
 
+    #Do this while X_list is not empty
+    while len(X_list) > 0:
+        curr_stacksize = np.size(X_list[0], 0)
+        X[this_plane:this_plane + curr_stacksize] = X_list.pop(0)
+        this_plane = this_plane + curr_stacksize
+        
     return X
     
 
