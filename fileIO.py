@@ -1,7 +1,7 @@
 """Contains functions to load images, labels, weights and patches."""
 
 # Following shows requirements for the Unet
-# def load_data():
+# def load_data(self):
 # 		# Replace with fileIO functions
 # 		im_train = []
 # 		im_train_labels = []
@@ -14,6 +14,7 @@ import socket
 import numpy as np
 import skimage.io
 import pdb
+
 
 def set_paths():
     """Return the pathname of the data directory."""
@@ -61,7 +62,7 @@ def load_IM(**kwargs):
     for idx, item in enumerate(fileid):
         fname = base_path + rel_IM_path + item + '_raw.tif'
         thisIM = skimage.io.imread(fname)
-        if len(thisIM.shape)==3:
+        if len(thisIM.shape) == 3:
             IM[idx] = np.copy(thisIM[:, :, 0])
         else:
             IM[idx] = np.copy(thisIM[:, :])
@@ -86,16 +87,16 @@ def load_labels(**kwargs):
     # Hardcoded values below for dimensions and number of channels!
     labels = np.zeros((len(fileid), 2500, 2500))
     for idx, item in enumerate(fileid):
-        fname = base_path + rel_label_path + item + '_newlabels.tif' 
+        fname = base_path + rel_label_path + item + '_newlabels.tif'
         thislabel = skimage.io.imread(fname)
-        if len(thislabel.shape)==3:
+        if len(thislabel.shape) == 3:
             labels[idx] = np.copy(thislabel[:, :, 0])
         else:
             labels[idx] = np.copy(thislabel[:, :])
     return labels
 
 
-def calc_W(IM,label):
+def calc_W(IM, label):
     """Return weights in numpy array for all given Image and label.
     IM and label should have same dimensions. Transformations to obtain
     W are performed in 2D"""
@@ -113,7 +114,7 @@ def gen_patch(X, **kwargs):
     else:
         stride = (256, 256)
     sizeIM = (512, 512)
-    
+
     maxstrides = np.zeros(2)
     maxstrides[0] = np.ceil((X.shape[0]-sizeIM[0])/stride[0])+1
     maxstrides[1] = np.ceil((X.shape[1]-sizeIM[1])/stride[1])+1
@@ -137,3 +138,26 @@ def gen_patch(X, **kwargs):
             Xpatch[patch_counter] = X[i: i+sizeIM[0], j: j + sizeIM[1]]
             patch_counter += 1
     return Xpatch
+
+
+def stack_list(X_list):
+    '''Puts contents of X_list into a single numpy array. Arrays are stacked in along axis = 0 in output X.
+    input X_list is a 1d list. Each element is a 3d numpy array of same size along axis 1 and 2.
+    output X is a 3d numpy array.'''
+    n_planes = 0
+    for X in X_list:
+        n_planes += np.size(X, 0)
+
+    #Pre-allocate array size
+    X = np.zeros((n_planes, np.size(X_list[0], 1), np.size(X_list[0], 2)))
+
+    #Pop the list entries into the array
+    this_plane = 0
+    while not X_list:
+        X[this_plane:this_plane + np.size(X_list[0], 1)] = X_list[0]
+        this_plane = this_plane + np.size(X_list[0], 1)
+        X_list.remove(0)
+
+    return X
+    
+
