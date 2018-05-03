@@ -20,7 +20,8 @@ def set_paths():
     """Return the pathname of the data directory.
     \nOutputs are: base_path, rel_IM_path, rel_label_path, rel_result_path"""
     hostname = socket.gethostname()
-    if hostname == 'Fruity.local':
+    #print(hostname)
+    if hostname == 'Fruity.local' or hostname == 'fruity.lan':
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
         rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
         rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
@@ -30,7 +31,7 @@ def set_paths():
         rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
         rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
         rel_result_path = 'dat/results/'
-    print('Base path set to: ' + base_path)
+    #print('Base path set to: ' + base_path)
 
     return base_path, rel_IM_path, rel_label_path, rel_result_path
 
@@ -43,7 +44,7 @@ def get_fileid():
 
     base_path, rel_IM_path = set_paths()[0:2]
     search_pattern = base_path + rel_IM_path + '*raw.tif'
-    print('Searching for pattern: ' + search_pattern)
+    print('Searching for fileids based on pattern: ' + search_pattern)
     IMnames = glob.glob(search_pattern)
 
     #List id of filenames ending with _raw.tif
