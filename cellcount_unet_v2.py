@@ -1,31 +1,51 @@
 # Adapted from https://github.com/zhixuhao/unet
-# Data generation adapted from https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly.html
-# This version is being adapted to have separate modules for data loading, model definition, loading weights etc.
+# Data generation ideas: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly.html
+# specify runmode, runid (withoutthe archid) and epochid to load model weights
 
 import os
+import pdb
+import sys
+import time
+from random import shuffle
 
+import matplotlib.pyplot as plt
 import numpy as np
 from keras import backend as K
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from keras.layers import (Conv2D, Cropping2D, Dropout, Input, MaxPooling2D,
-                          UpSampling2D, Concatenate)
+from keras.layers import (Concatenate, Conv2D, Cropping2D, Dropout, Input,
+                          MaxPooling2D, UpSampling2D)
+from keras.losses import binary_crossentropy, mean_squared_error
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.losses import mean_squared_error, binary_crossentropy
+from keras.utils import plot_model
 
-from random import shuffle
-
+import _pickle as cPickle
 import fileIO
+import im3dscroll as I
 from custom_dataloader import DataGenerator
-import pdb
 
 # Parameters
 batch_size = 4
 
 # Rounding errors if dataset has small number of files
+archid = '_v2'
+nepochs = 3
+save_period = 1
 training_set_splitfraction = 0.8
-nepochs = 50
+if len(sys.argv) > 1:
+    runid = sys.argv[1] + archid
+else:
+    runid = time.strftime("%Y%m%d-%H%M%S") + archid
+
+runmode = 'viewresult' #'trainnew' or 'viewresult' 
+epochid = '0002'
+
+
 base_path, _, _, rel_result_path = fileIO.set_paths()[0:4]
+checkpoint_path = base_path + rel_result_path + '/' + runid
+if not os.path.exists(checkpoint_path):
+    os.makedirs(checkpoint_path)
+
 
 # Assign dataset ids based on split fractions
 allid = fileIO.get_fileid()
@@ -103,51 +123,30 @@ def loss_fcn(y_true, y_pred):
 
 model.compile(optimizer=Adam(),loss={'output_im': loss_fcn}, metrics=['accuracy'])
 
-model_checkpoint = ModelCheckpoint(
-    base_path + rel_result_path + 'unet.h5',
-    monitor='loss', verbose=1, save_best_only=True)
+bestnet_cb = ModelCheckpoint(filepath=(base_path + rel_result_path + runid + '-bestwt.h5'),
+                             monitor='loss', verbose=1, save_best_only=True)
 
-#----------------------------------------------
-#----------------------------------------------
-#----------------------------------------------
+hist_cb = ModelCheckpoint(filepath=(base_path + rel_result_path + '/' + runid + '/' + '{epoch:04d}' + '.h5'),
+                          verbose=1, save_best_only=False, save_weights_only=True,
+                          mode='auto', period=save_period)
 
-#         checkpoint_cb = ModelCheckpoint(filepath=(checkpoint_path + '/' + '{epoch:04d}' + '.h5'),
-#                                     verbose=1, save_best_only=False, save_weights_only=True,
-#                                     mode='auto', period=save_period)
-
-#     train_history = autoencoder.fit({'input_x': x_train},
-#                                     {'Rx1': x_train,
-#                                      'Rx2': x_train,
-#                                      'z1': np.zeros((train_size, bottleneck_dim)),
-#                                      'z2': np.zeros((train_size, bottleneck_dim))},
-#                                     epochs=n_epoch,
-#                                     batch_size=batch_size,
-#                                     shuffle=True,
-#                                     validation_data=({'input_x': x_test},
-#                                                      {'Rx1': x_test,
-#                                                       'Rx2': x_test,
-#                                                       'z1': np.zeros((test_size, bottleneck_dim)),
-#                                                       'z2': np.zeros((test_size, bottleneck_dim))}),
-#                                     callbacks=[checkpoint_cb])
-
-#     summary = train_history.params
-#     summary.update(train_history.history)
-
-# # Save trained model
-#     plot_model(autoencoder, to_file=save_path + fileid+'-img'+'.png')
-#     autoencoder.save_weights(save_path+fileid+'-modelweights'+'.h5')
-#     with open(save_path+fileid+'-traininghist'+'.pkl', 'wb') as file_pi:
-#         cPickle.dump(summary, file_pi)
-
-# #----------------------------------------------
-# #----------------------------------------------
-# #----------------------------------------------
-
+#To train without using generator:
 #history = model.fit({'input_im': training_generator.x}, {'output_im': training_generator.y}, batch_size=4, epochs=nepochs, verbose=1,
 #                    validation_data=({'input_im': training_generator.x}, {'output_im': training_generator.y}), shuffle=True)
+if runmode == 'trainnew':
+    train_history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=[hist_cb, bestnet_cb], validation_data=validation_generator,
+                                        max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+    summary = train_history.params
+    summary.update(train_history.history)
 
-history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=None, validation_data=validation_generator,
-                              max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+    # Save trained model
+    plot_model(model, to_file=base_path +
+               rel_result_path + runid + '-arch'+'.png')
+    with open(base_path + rel_result_path + runid+'-summary'+'.pkl', 'wb') as file_pi:
+        cPickle.dump(summary, file_pi)
+
+elif runmode == 'viewresult':
+    model.load_weights(base_path + rel_result_path + '/' + runid + '/' + epochid + '.h5')
 
 im_test = validation_generator.x
 labels_test = validation_generator.y
@@ -157,13 +156,11 @@ labels_test = np.reshape(labels_test, (np.shape(labels_test)[0:3]))
 labels_test_predict = np.reshape(
     labels_test_predict, (np.shape(labels_test_predict)[0:3]))
 
-import im3dscroll as I
 I.im3dscroll(im_test)
 I.im3dscroll(labels_test)
 I.im3dscroll(labels_test_predict)
 
-import matplotlib.pyplot as plt
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111)
-ax1.plot(history.history['loss'])
-plt.show(block=True)
+ax1.plot(train_history.history['loss'])
+plt.show(block=False)
