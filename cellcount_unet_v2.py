@@ -17,14 +17,14 @@ from random import shuffle
 
 import fileIO
 from custom_dataloader import DataGenerator
-
+import pdb
 
 # Parameters
 batch_size = 4
 
 # Rounding errors if dataset has small number of files
 training_set_splitfraction = 0.8
-nepochs = 3
+nepochs = 100
 base_path, _, _, rel_result_path = fileIO.set_paths()[0:4]
 
 # Assign dataset ids based on split fractions
@@ -33,18 +33,16 @@ shuffle(allid)  # shuffles the the list in-place
 training_partition = allid[0:round(len(allid)*training_set_splitfraction)]
 testing_partition = allid[round(len(allid)*training_set_splitfraction):]
 
+training_partition = ['53']
+testing_partition = ['53'] 
+
 # Generators to create training and test sets at runtime
 training_generator = DataGenerator(training_partition, batch_size)
 validation_generator = DataGenerator(testing_partition, batch_size)
 
-input_im = Input(shape=(512, 512, 1), name='input_im')
-conv1 = Conv2D(2, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(input_im)    # (batch, 512, 512, 64)
-conv1 = Conv2D(2, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(conv1)		# (batch, 512, 512, 64)
-pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)				# (batch, 256, 256, 64)
+input_im = Input(shape=(256, 256, 1), name='input_im')
 conv2 = Conv2D(4, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(pool1)	    # (batch, 256, 256, 128)
+               kernel_initializer='he_normal')(input_im)    # (batch, 256, 256, 128)
 conv2 = Conv2D(4, 3, activation='relu', padding='same',
                kernel_initializer='he_normal')(conv2)	    # (batch, 256, 256, 128)
 pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)			    # (batch, 128, 128, 128)
@@ -88,33 +86,33 @@ conv8 = Conv2D(4, 3, activation='relu', padding='same',
                kernel_initializer='he_normal')(cat8)		# (batch, 256, 256, 128)
 conv8 = Conv2D(4, 3, activation='relu', padding='same',
                kernel_initializer='he_normal')(conv8)		# (batch, 256, 256, 128)
-up9 = UpSampling2D(size=(2, 2))(conv8)						# (batch, 512, 512, 128)
-up9 = Conv2D(2, 2, activation='relu', padding='same',
-             kernel_initializer='he_normal')(up9)			# (batch, 512, 512, 64)
-cat9 = Concatenate(axis=3)([conv1, up9])  				    # (batch, 512, 512, 128)
 conv9 = Conv2D(2, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(cat9)	 	# (batch, 512, 512, 64)
-conv9 = Conv2D(2, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(conv9)		# (batch, 512, 512, 64)
-conv9 = Conv2D(2, 3, activation='relu', padding='same',
-               kernel_initializer='he_normal')(conv9)		# (batch, 512, 512, 2)
+               kernel_initializer='he_normal')(conv8)		# (batch, 256, 256, 2)
 output_im = Conv2D(1, 1, activation='sigmoid',
-                   name='output_im')(conv9)		            # (batch, 512, 512, 1)
+                   name='output_im')(conv9)		            # (batch, 256, 256, 1)
 
 model = Model(inputs=[input_im], outputs=[output_im])
 
-def loss_fcn(y_true, y_pred):
-    return mean_squared_error(y_true, y_pred)
 
-model.compile(optimizer=Adam(lr=1e-4),
-              loss={'output_im':loss_fcn}, metrics=['accuracy'])
+def loss_fcn(y_true, y_pred):
+    w = y_true
+    w = 37996*(1 - y_true) + 816077*(y_true) #based on number of non-zero labels in the image
+    return K.mean(K.square(y_true - y_pred)*w,axis = None)
+
+model.compile(optimizer=Adam(),
+              loss={'output_im': loss_fcn}, metrics=['accuracy'])
 
 model_checkpoint = ModelCheckpoint(
     base_path + rel_result_path + 'unet.h5',
     monitor='loss', verbose=1, save_best_only=True)
 
-history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=None, validation_data=validation_generator,
-                              max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+
+
+history = model.fit({'input_im': training_generator.x}, {'output_im': training_generator.y}, batch_size=4, epochs=nepochs, verbose=1,
+    validation_data=({'input_im': training_generator.x}, {'output_im': training_generator.y}), shuffle=True)
+
+#history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=None, validation_data=validation_generator,
+#                              max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
 
 im_test = training_generator.x
 labels_test = training_generator.y
@@ -128,3 +126,9 @@ import im3dscroll as I
 I.im3dscroll(im_test)
 I.im3dscroll(labels_test)
 I.im3dscroll(labels_test_predict)
+
+import matplotlib.pyplot as plt
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(111)
+ax1.plot(history.history['loss'])
+plt.show(block = True)
