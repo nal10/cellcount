@@ -24,7 +24,7 @@ batch_size = 4
 
 # Rounding errors if dataset has small number of files
 training_set_splitfraction = 0.8
-nepochs = 100
+nepochs = 50
 base_path, _, _, rel_result_path = fileIO.set_paths()[0:4]
 
 # Assign dataset ids based on split fractions
@@ -33,8 +33,8 @@ shuffle(allid)  # shuffles the the list in-place
 training_partition = allid[0:round(len(allid)*training_set_splitfraction)]
 testing_partition = allid[round(len(allid)*training_set_splitfraction):]
 
-training_partition = ['53']
-testing_partition = ['53'] 
+training_partition = ['123','77','60','57','167','68','113','157','143','109','175','95','119','74','131','111']
+testing_partition = ['53']
 
 # Generators to create training and test sets at runtime
 training_generator = DataGenerator(training_partition, batch_size)
@@ -96,26 +96,61 @@ model = Model(inputs=[input_im], outputs=[output_im])
 
 def loss_fcn(y_true, y_pred):
     w = y_true
-    w = 37996*(1 - y_true) + 816077*(y_true) #based on number of non-zero labels in the image
-    return K.mean(K.square(y_true - y_pred)*w,axis = None)
+    # based on number of non-zero labels in the image
+    w = (548655.0/111411200.0)*(1 - y_true) + (110862545.0/111411200.0)*(y_true)
+    return K.mean(K.square(y_true - y_pred)*w, axis=None)
 
-model.compile(optimizer=Adam(),
-              loss={'output_im': loss_fcn}, metrics=['accuracy'])
+
+model.compile(optimizer=Adam(),loss={'output_im': loss_fcn}, metrics=['accuracy'])
 
 model_checkpoint = ModelCheckpoint(
     base_path + rel_result_path + 'unet.h5',
     monitor='loss', verbose=1, save_best_only=True)
 
+#----------------------------------------------
+#----------------------------------------------
+#----------------------------------------------
 
+#         checkpoint_cb = ModelCheckpoint(filepath=(checkpoint_path + '/' + '{epoch:04d}' + '.h5'),
+#                                     verbose=1, save_best_only=False, save_weights_only=True,
+#                                     mode='auto', period=save_period)
 
-history = model.fit({'input_im': training_generator.x}, {'output_im': training_generator.y}, batch_size=4, epochs=nepochs, verbose=1,
-    validation_data=({'input_im': training_generator.x}, {'output_im': training_generator.y}), shuffle=True)
+#     train_history = autoencoder.fit({'input_x': x_train},
+#                                     {'Rx1': x_train,
+#                                      'Rx2': x_train,
+#                                      'z1': np.zeros((train_size, bottleneck_dim)),
+#                                      'z2': np.zeros((train_size, bottleneck_dim))},
+#                                     epochs=n_epoch,
+#                                     batch_size=batch_size,
+#                                     shuffle=True,
+#                                     validation_data=({'input_x': x_test},
+#                                                      {'Rx1': x_test,
+#                                                       'Rx2': x_test,
+#                                                       'z1': np.zeros((test_size, bottleneck_dim)),
+#                                                       'z2': np.zeros((test_size, bottleneck_dim))}),
+#                                     callbacks=[checkpoint_cb])
 
-#history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=None, validation_data=validation_generator,
-#                              max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+#     summary = train_history.params
+#     summary.update(train_history.history)
 
-im_test = training_generator.x
-labels_test = training_generator.y
+# # Save trained model
+#     plot_model(autoencoder, to_file=save_path + fileid+'-img'+'.png')
+#     autoencoder.save_weights(save_path+fileid+'-modelweights'+'.h5')
+#     with open(save_path+fileid+'-traininghist'+'.pkl', 'wb') as file_pi:
+#         cPickle.dump(summary, file_pi)
+
+# #----------------------------------------------
+# #----------------------------------------------
+# #----------------------------------------------
+
+#history = model.fit({'input_im': training_generator.x}, {'output_im': training_generator.y}, batch_size=4, epochs=nepochs, verbose=1,
+#                    validation_data=({'input_im': training_generator.x}, {'output_im': training_generator.y}), shuffle=True)
+
+history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=None, validation_data=validation_generator,
+                              max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+
+im_test = validation_generator.x
+labels_test = validation_generator.y
 labels_test_predict = model.predict(im_test, batch_size=1, verbose=1)
 im_test = np.reshape(im_test, (np.shape(im_test)[0:3]))
 labels_test = np.reshape(labels_test, (np.shape(labels_test)[0:3]))
@@ -131,4 +166,4 @@ import matplotlib.pyplot as plt
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111)
 ax1.plot(history.history['loss'])
-plt.show(block = True)
+plt.show(block=True)
