@@ -10,11 +10,12 @@
 # 		return im_train, im_train_labels, im_test, im_test_labels
 
 import sys
+import os
 import socket
 import numpy as np
-import skimage.io
+import skimage.io as skio
+import glob
 import pdb
-
 
 def set_paths():
     """Return the pathname of the data directory.
@@ -23,56 +24,85 @@ def set_paths():
     #print(hostname)
     if hostname == 'Fruity.local' or hostname == 'fruity.lan':
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
-        rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
-        rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
+        rel_IM_path = 'dat/raw/Dataset_01_Images/'
+        rel_label_path = 'dat/proc/Dataset_01_Labels_v3/'
         rel_result_path = 'dat/results/'
     elif hostname == 'rohan-ai':
         base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
-        rel_IM_path = 'dat/raw/cellSegmentationDataset_v2/'
-        rel_label_path = 'dat/raw/cellSegmentationDataset_v2/'
+        rel_IM_path = 'dat/raw/Dataset_01_Images/'
+        rel_label_path = 'dat/proc/Dataset_01_Labels_v3/'
         rel_result_path = 'dat/results/'
-    #print('Base path set to: ' + base_path)
+    elif hostname == 'shenqin-ai':
+        base_path = '/home/shenqin/Local/CellCount/'
+        rel_IM_path = 'dat/raw/Dataset_01_Images/'
+        rel_label_path = 'dat/proc/Dataset_01_Labels_v3/'
+        rel_result_path = 'dat/results/'
+    else:
+        print('File paths for hostname = ' + hostname + 'not set!')
+
+    if not(os.path.isdir(base_path) and
+           os.path.isdir(base_path + rel_IM_path) and
+           os.path.isdir(base_path + rel_label_path) and
+           os.path.isdir(base_path + rel_result_path)):
+        print('One or more of paths in set_paths() do not exist!')
 
     return base_path, rel_IM_path, rel_label_path, rel_result_path
 
 
 def get_fileid():
-    """Return fileids for _raw.tif images in directory."""
+    """Return fileids for _raw.tif images in directory.
+    \n Outputs: 
+    \n fid_IM_Labels -- Both IM and corresponding Labels available
+    \n fid_IM -- IM available 
+    \n fid_Labels -- Labels available"""    
 
-    import os
-    import glob
+    base_path, rel_IM_path, rel_label_path = set_paths()[0:3]
+    search_pattern_IM = base_path + rel_IM_path + '*raw.tif'
+    search_pattern_Labels = base_path + rel_label_path + '*labels.tif'
 
-    base_path, rel_IM_path = set_paths()[0:2]
-    search_pattern = base_path + rel_IM_path + '*raw.tif'
-    print('Searching for fileids based on pattern: ' + search_pattern)
-    IMnames = glob.glob(search_pattern)
+    
+    full_fid_IM = glob.glob(search_pattern_IM)
+    full_fid_Labels = glob.glob(search_pattern_Labels)
+    #print('Searching for fileids based on pattern: ' + search_pattern_IM)
+    #print("\n".join(full_fid_IM))
+    #print("\n".join(full_fid_Labels))
 
     #List id of filenames ending with _raw.tif
-    fileidlist = []
-    for f in IMnames:
+    fid_IM = []
+    for f in full_fid_IM:
         os.path.basename(f)
         os.path.dirname(f)
         os.path.splitext(f)
         temp = os.path.splitext(os.path.basename(f))
         temp = temp[0].split('_')
-        fileidlist.append(temp[0])
-    return fileidlist
+        fid_IM.append(temp[0])
 
+    #List id of filenames ending with _labels.tif
+    fid_Labels = []
+    for f in full_fid_Labels:
+        os.path.basename(f)
+        os.path.dirname(f)
+        os.path.splitext(f)
+        temp = os.path.splitext(os.path.basename(f))
+        temp = temp[0].split('_')
+        fid_Labels.append(temp[0])
 
-def load_IM(**kwargs):
-    """Return images in numpy array for all files listed in fileid."""
-    base_path, rel_IM_path = set_paths()[0:2]
-    if 'fileid' in kwargs:
-        fileid = kwargs.pop('fileid')
-    else:
-        fileid = get_fileid()
+    # Get intersection of ids for which both IM and Labels exist
+    fid_IM_Labels = [val for val in fid_IM if val in fid_Labels]
+    return fid_IM_Labels, fid_IM, fid_Labels
 
-    # Hardcoded values below for dimensions and number of channels!
+def load_IM(fileid = []):
+    """Return images in numpy array for all files listed in fileid. Assumes all files are the same """
+    base_path, rel_IM_path, rel_label_path, rel_result_path = set_paths()[0:3]
+    IM = np.array([])
+        
+    # Hardcoded values below for dimensions
     IM = np.zeros((len(fileid), 2500, 2500))
     for idx, item in enumerate(fileid):
         fname = base_path + rel_IM_path + item + '_raw.tif'
-        thisIM = skimage.io.imread(fname)
+        thisIM = skio.imread(fname)
         if len(thisIM.shape) == 3:
+            print('More than 1 channel in ' + fname +': Retaining only 1st.')
             IM[idx] = np.copy(thisIM[:, :, 0])
         else:
             IM[idx] = np.copy(thisIM[:, :])
@@ -80,8 +110,8 @@ def load_IM(**kwargs):
 
 
 def load_labels(**kwargs):
-    """Return labels in numpy array for all files listed in fileid.
-    _newlabel.tif files were generated with Matlab code - the original 
+    """Return labels in numpy array for all files listed in `fileid`.
+    _label.tif files are generated with Matlab code - the original 
     label files could not be opened with scikit-image functions
 
     Keyword arguments:
@@ -97,8 +127,8 @@ def load_labels(**kwargs):
     # Hardcoded values below for dimensions and number of channels!
     labels = np.zeros((len(fileid), 2500, 2500))
     for idx, item in enumerate(fileid):
-        fname = base_path + rel_label_path + item + '_newlabels.tif'
-        thislabel = skimage.io.imread(fname)
+        fname = base_path + rel_label_path + item + '_labels.tif'
+        thislabel = skio.imread(fname)
         if len(thislabel.shape) == 3:
             labels[idx] = np.copy(thislabel[:, :, 0])
         else:
@@ -116,14 +146,14 @@ def calc_W(IM, label):
 
 
 def gen_patch(X, **kwargs):
-    """Return inputs shaped to 512 x 512 as obtained by strides.
+    """Return inputs shaped to 256 x 256 as obtained by strides.
     stride is expected as a 2 element tuple
     """
     if 'stride' in kwargs:
         stride = kwargs.pop('stride')
     else:
-        stride = (256, 256)
-    sizeIM = (512, 512)
+        stride = (128, 128)
+    sizeIM = (256, 256)
 
     maxstrides = np.zeros(2)
     maxstrides[0] = np.ceil((X.shape[0]-sizeIM[0])/stride[0])+1
@@ -172,5 +202,49 @@ def stack_list(X_list):
         this_plane = this_plane + curr_stacksize
         
     return X
+
+
+def gen_rand_patches(X, patchsize=(256, 256), stride=(128, 128), npatches=10, ispad=True):
+    """
+    "Creates random patches of given size from a given 2d or 3d image X.
+    \n ispad: True allows patches to be chosen from arbitrary position within image, padded with zeros.
+    \n Outputs: 
+    \n 3d array with dims (patchsize[0] x patchsize[1] x npatchs)
+    """
+    if ispad:
+        patch_mid_x = np.random.randint(0, X.shape[0], npatches)
+        patch_mid_y = np.random.randint(0, X.shape[1], npatches)
+    else:
+        xystart = np.random.randint(0, X.shape[0], 2)
+
+    for _ in np.arange(0,npatches)
+        
+
+
+    maxstrides = np.zeros(2)
+    maxstrides[0] = np.ceil((X.shape[0]-patchsize[0])/stride[0])+1
+    maxstrides[1] = np.ceil((X.shape[1]-patchsize[1])/stride[1])+1
+
+    start_x = np.arange(0, maxstrides[0], 1) * stride[0]
+    start_x = np.append(start_x, X.shape[0] - patchsize[0])
+    start_x = start_x[start_x <= (X.shape[0] - patchsize[0])]
+    start_x = np.unique(start_x)
+
+    start_y = np.arange(0, maxstrides[1], 1) * stride[1]
+    start_y = np.append(start_y, X.shape[1] - patchsize[1])
+    start_y = start_y[start_y <= (X.shape[1] - patchsize[1])]
+    start_y = np.unique(start_y)
+
+    #Check for memory requirement here; break if greater than some thr.
+
+    Xpatch = np.zeros((start_x.size * start_y.size,
+                       patchsize[0], patchsize[1]))
+    patch_counter = 0
+    for i in start_x.astype(int):
+        for j in start_y.astype(int):
+            Xpatch[patch_counter] = X[i: i+patchsize[0], j: j + patchsize[1]]
+            patch_counter += 1
+
+    return Xpatch
     
 
