@@ -40,7 +40,6 @@ def set_paths():
 
     return base_path, rel_im_path, rel_lbl_path, rel_result_path
 
-
 def get_fileid():
     """Return fileids for _raw.tif images in directory.
     \n Outputs: 
@@ -159,7 +158,6 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
         lbl_patches[i,pxs[i]:pxe[i],pys[i]:pye[i],0] = lbl[fxs[i]:fxe[i],fys[i]:fye[i]]
     
     return im_patches, lbl_patches
-
 
 def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
     """Returns im_patches and lbl_patches by striding across the image.

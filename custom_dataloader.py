@@ -113,10 +113,6 @@ class DataGenerator(Sequence):
 
         return {'input_im': self.x, 'output_im': self.y}
 
-
-
-
-
 class DataGeneratorVal(Sequence):
     'This class is a generator for examples used for training keras models'
 
