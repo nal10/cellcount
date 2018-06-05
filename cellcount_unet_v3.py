@@ -1,6 +1,7 @@
 # Adapted from https://github.com/zhixuhao/unet
 # Data generation ideas: https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly.html
 # specify runmode, runid (withoutthe archid) and epochid to load model weights
+# Architecture requires a 64 x 64 input.
 
 import os
 import pdb
@@ -24,14 +25,15 @@ import pickle as Pickle
 import fileIO
 import im3dscroll as I
 from custom_dataloader import DataGenerator
+import tensorflow as tf
 
 # Parameters
-batch_size = 4
+batch_size = 64
 
 # Rounding errors if dataset has small number of files
-archid = '_v2'
-nepochs = 3
-save_period = 1
+archid = '_v3'
+nepochs = 200
+save_period = 50
 training_set_splitfraction = 0.8
 if len(sys.argv) > 1:
     runid = sys.argv[1] + archid
@@ -61,7 +63,7 @@ testing_partition = ['53']
 training_generator = DataGenerator(training_partition, batch_size)
 validation_generator = DataGenerator(testing_partition, batch_size)
 
-input_im = Input(shape=(256, 256, 1), name='input_im')
+input_im = Input(shape=(64, 64, 1), name='input_im')
 conv2 = Conv2D(4, 3, activation='relu', padding='same',
                kernel_initializer='he_normal')(input_im)    # (batch, 256, 256, 128)
 conv2 = Conv2D(4, 3, activation='relu', padding='same',
@@ -121,8 +123,17 @@ def loss_fcn(y_true, y_pred):
     w = (548655.0/111411200.0)*(1 - y_true) + (110862545.0/111411200.0)*(y_true)
     return K.mean(K.square(y_true - y_pred)*w, axis=None)
 
+def loss_fcn_bce(y_true, y_pred):
+    weight_ones = 0.995 #~110862545.0/111411200.0
+    weight_zeros = 1. - weight_ones
+    #wbce = - tf.multiply(weight_ones, tf.multiply(y_true, K.log(y_pred))) \
+    #       - tf.multiply(weight_zeros, tf.multiply((1. - y_true), K.log(1. - y_pred)))
+    wbce = - (weight_ones * y_true * K.log(y_pred + K.epsilon())) \
+           - (weight_zeros * (1.-y_true) * K.log(1. - y_pred + K.epsilon()))
+    return K.mean(wbce,axis = None)
 
-model.compile(optimizer=Adam(),loss={'output_im': loss_fcn}, metrics=['accuracy'])
+
+model.compile(optimizer=Adam(),loss={'output_im': loss_fcn_bce}, metrics=['accuracy'])
 
 bestnet_cb = ModelCheckpoint(filepath=(base_path + rel_result_path + runid + '-bestwt.h5'),
                              monitor='loss', verbose=1, save_best_only=True)
@@ -135,7 +146,7 @@ hist_cb = ModelCheckpoint(filepath=(base_path + rel_result_path + '/' + runid + 
 #history = model.fit({'input_im': training_generator.x}, {'output_im': training_generator.y}, batch_size=4, epochs=nepochs, verbose=1,
 #                    validation_data=({'input_im': training_generator.x}, {'output_im': training_generator.y}), shuffle=True)
 if runmode == 'trainnew':
-    train_history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=[hist_cb, bestnet_cb], validation_data=validation_generator,
+    train_history = model.fit_generator(training_generator, epochs=nepochs, verbose=1, callbacks=[hist_cb], validation_data=validation_generator,
                                         max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
     summary = train_history.params
     summary.update(train_history.history)

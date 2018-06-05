@@ -98,8 +98,6 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
 
     shape = np.shape(im)
     pad = int(round(patchsize/2))
-    im_patches = np.zeros([npatches,patchsize,patchsize,1])
-    lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
 
     nfg = int(round(npatches*fgfrac))
     if nfg > 0:
@@ -154,6 +152,8 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
     fye[fye>shape[1]]=shape[1]
 
     #Assemble patches
+    im_patches = np.zeros([npatches,patchsize,patchsize,1])
+    lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
     for i in range(0, npatches):
         im_patches[i,pxs[i]:pxe[i],pys[i]:pye[i],0] = im[fxs[i]:fxe[i],fys[i]:fye[i]]
         lbl_patches[i,pxs[i]:pxe[i],pys[i]:pye[i],0] = lbl[fxs[i]:fxe[i],fys[i]:fye[i]]
@@ -204,14 +204,10 @@ def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
     ij = 0
     im_patches = np.zeros([npatches,patchsize,patchsize,1])
     lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
-    #im_patches  = np.zeros((fxs.size * fys.size, patchsize, patchsize))
-    #lbl_patches = np.zeros((fxs.size * fys.size, patchsize, patchsize))
     for i in range(len(fxs)):
         for j in range(len(fys)):
             im_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = im[fxs[i]:fxe[i],fys[j]:fye[j]]
             lbl_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = lbl[fxs[i]:fxe[i],fys[j]:fye[j]]
-            #im_patches[ij]  =  im[fi: i + patchsize, j: j + patchsize]
-            #lbl_patches[ij] = lbl[i: i + patchsize, j: j + patchsize]
             ij += 1
     return im_patches, lbl_patches
 
