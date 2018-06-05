@@ -102,65 +102,41 @@ def load_IM_Lbl(fileid):
     return this_IM, this_Lbl
 
 
-def getpatches_rand(im, lbl, patchsize=64, npatches=100):
-    """Create patches from inputs. Patches are appended in the first dimension
-    \n Assumes patchsize is even"""
-    shape = np.shape(im)
-    pad = round(patchsize/2)
-    im_array = np.zeros([npatches,patchsize,patchsize,1])
-    lbl_array = np.zeros([npatches,patchsize,patchsize,1])
-
-    xmid = np.random.randint(pad,shape[0]-pad,size=[npatches,],dtype=int)
-    ymid = np.random.randint(pad,shape[1]-pad,size=[npatches,],dtype=int)
-
-    #Calculating indices on image and on patch for dim 0
-    pxs = xmid - pad
-    pxe = xmid + pad
-    
-    axs = np.zeros(npatches,dtype=int)
-    axe = np.ones(npatches,dtype=int)*patchsize
-    
-    axs[pxs<0] = abs(pxs[pxs<0])
-    axe[pxe>shape[0]] = patchsize - (pxe[pxe>shape[0]] - shape[0])
-
-    pxs[pxs<0]=0
-    pxe[pxe>shape[0]]=shape[0]
-
-    #Repeating calculation for dim 1
-    pys = ymid - pad
-    pye = ymid + pad
-    
-    ays = np.zeros(npatches,dtype=int)
-    aye = np.ones(npatches,dtype=int)*patchsize
-    ays[pys<0] = abs(pys[pys<0])
-    aye[pye>shape[1]] = patchsize - (pye[pye>shape[1]] - shape[1])
-    
-    pys[pys<0]=0
-    pye[pye>shape[1]]=shape[1]
-    for i in range(0, npatches):
-        im_array[i,axs[i]:axe[i],ays[i]:aye[i],0] = im[pxs[i]:pxe[i],pys[i]:pye[i]]
-        lbl_array[i,axs[i]:axe[i],ays[i]:aye[i],0] = lbl[pxs[i]:pxe[i],pys[i]:pye[i]]
-    
-    return im_array, lbl_array
-
-
 def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
-    """Create patches from npatches"""
-    xmid_fg,xmid_fg = np.where(lbl!=0)
-    ind = np.random.random_integers(0,np.size(xpos_fg),size=[npatches,1])
-    for i in range(0, npatches):
-        xpos[ind[i]]
-        ypos[ind[i]]
-    
+    """Create patches where at least 'fgfrac' fraction of patches have atleast one foreground pixel in them
+    \n Assumes 'lbl' contains foreground = 1 and background = 0"""
 
     shape = np.shape(im)
-    pad = round(patchsize/2)
+    pad = int(round(patchsize/2))
     im_array = np.zeros([npatches,patchsize,patchsize,1])
     lbl_array = np.zeros([npatches,patchsize,patchsize,1])
 
-    xmid = np.random.randint(pad,shape[0]-pad,size=[npatches,],dtype=int)
-    ymid = np.random.randint(pad,shape[1]-pad,size=[npatches,],dtype=int)
+    nfg = round(npatches*fgfrac)
+    if nfg > 0.0:
+        #Find position of all foreground pixels:
+        #np.where() operation takes ~0.04 s on my cpu to processing a (2500 x 2500) array.
+        #These are used to create patches where at least one pixel will be foreground
+        xmid_fg, ymid_fg = np.where(lbl != 0)
 
+        #Introduce jitter allow foreground pixel to be anywhere (not only center) within the patch
+        xmid_fg = xmid_fg + np.random.randint(-(pad-1), (pad-1), np.size(xmid_fg), dtype=int)
+        ymid_fg = ymid_fg + np.random.randint(-(pad-1), (pad-1), np.size(ymid_fg), dtype=int)
+        ind = np.random.randint(0,np.size(xmid_fg),size=npatches,dtype=int)
+        
+        xmid_fg = xmid_fg[ind[0:nfg]]
+        ymid_fg = ymid_fg[ind[0:nfg]]
+    else:
+        xmid_fg = np.array([],dtype = int)
+        ymid_fg = np.array([],dtype = int)
+
+    #Create random positions around which patches will be calculated
+    xmid_rand = np.random.randint(pad,shape[0]-pad,size=[npatches-nfg,],dtype=int)
+    ymid_rand = np.random.randint(pad,shape[1]-pad,size=[npatches-nfg,],dtype=int)
+    
+    #Concatenate patch locations
+    xmid = np.concatenate((xmid_fg,xmid_rand), axis=0)
+    ymid = np.concatenate((ymid_fg,ymid_rand), axis=0)
+    
     #Calculating indices on image and on patch for dim 0
     pxs = xmid - pad
     pxe = xmid + pad
@@ -190,14 +166,6 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
         lbl_array[i,axs[i]:axe[i],ays[i]:aye[i],0] = lbl[pxs[i]:pxe[i],pys[i]:pye[i]]
     
     return im_array, lbl_array
-
-
-
-
-
-
-
-
 
 # def load_IM(fileid = []):
 #     """Return images in numpy array for all files listed in fileid. Assumes all files are the same """
