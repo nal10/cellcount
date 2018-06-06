@@ -15,7 +15,8 @@ class dataset(object):
     \n rotate=True, 
     \n flip=True
     '''
-    def __init__(self, file_id, batch_size=4, patchsize=64, npatches=10**4, fgfrac=.5, shuffle=True, rotate=True, flip=True):
+    def __init__(self, file_id, batch_size=4, patchsize=64, getpatch_algo='random',npatches=10**4, 
+        fgfrac=.5, shuffle=True, rotate=True, flip=True, stride=(32,32), padding=True):
         
         #Paths
         base_path,rel_im_path,rel_lbl_path,rel_result_path = fileIO.set_paths()
@@ -27,12 +28,20 @@ class dataset(object):
         #Parameters for input
         self.batch_size = batch_size
         self.patchsize = patchsize
+
+        self.getpatch_algo = getpatch_algo
+
+        #Parameters for random patch algorithm
         self.npatches_perfile = int(npatches/len(file_id))
-        self.shuffle = shuffle
         self.fgfrac = fgfrac
 
-        #Data augmentation
+        #Parameters used by stride algorithm
+        self.stride = stride
+        self.padding = padding
+
+        #Parameters for augmentation
         #See examples in /Users/fruity/Envs/Py3ML/lib/python3.6/site-packages/keras/preprocessing/image.py
+        self.shuffle = shuffle
         self.rotate = rotate
         self.flip = flip
 
@@ -44,70 +53,37 @@ class dataset(object):
     def load_im_lbl(self):
         #This loads label and image data into a list
         for f in self.file_id:
-            self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0])
+            self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0])#<---- Choosing 1st out of 3 exact copies in channels
             self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif'))
         return
 
-    def get_random_patches(self):
+    def get_patches(self):
         #Use data buffer to generate patches
 
-        im_epoch = np.zeros((0, self.patchsize, self.patchsize, 1))
-        lbl_epoch = np.zeros((0, self.patchsize, self.patchsize, 1))
+        im_patches = np.zeros((0, self.patchsize, self.patchsize, 1))
+        lbl_patches = np.zeros((0, self.patchsize, self.patchsize, 1))
 
         for f in range(len(self.im_buffer)):
-            im_this, lbl_this = fileIO.getpatches_randwithfg(
-                im=self.im_buffer[f], lbl=self.lbl_buffer[f],
-                patchsize=self.patchsize,
-                npatches=self.npatches_perfile,
-                fgfrac=self.fgfrac)
-            im_epoch = np.append(im_epoch, im_this, axis=0)
-            lbl_epoch = np.append(lbl_epoch, lbl_this, axis=0)
-
-        im_epoch,lbl_epoch = data_augment(im_epoch, lbl_epoch, rotate=self.rotate, flip=self.flip, shuffle=self.shuffle)
-
-        # if self.rotate:
-        #     #Stack rotated patches and labels
-        #     im_epoch = np.concatenate(
-        #         (im_epoch,
-        #          np.rot90(im_epoch, 1, (1, 2)),
-        #          np.rot90(im_epoch, 2, (1, 2)),
-        #          np.rot90(im_epoch, 3, (1, 2))), axis=0)
-
-        #     lbl_epoch = np.concatenate(
-        #         (lbl_epoch,
-        #          np.rot90(lbl_epoch, 1, (1, 2)),
-        #          np.rot90(lbl_epoch, 2, (1, 2)),
-        #          np.rot90(lbl_epoch, 3, (1, 2))), axis=0)
-
-        # if self.flip and self.rotate:
-        #     im_epoch = np.concatenate(
-        #         (im_epoch, np.flip(im_epoch, axis=1)), axis=0)
-
-        #     lbl_epoch = np.concatenate(
-        #         (lbl_epoch, np.flip(lbl_epoch, axis=1)), axis=0)
-
-        # elif self.flip and not self.rotate:
-        #     im_epoch = np.concatenate(
-        #         (im_epoch,
-        #          np.flip(im_epoch, axis=1),
-        #          np.flip(im_epoch, axis=2)), axis=0)
+            if self.getpatch_algo == 'random':
+                im_this, lbl_this = getpatches_randwithfg(
+                    im=self.im_buffer[f], lbl=self.lbl_buffer[f],
+                    patchsize=self.patchsize,
+                    npatches=self.npatches_perfile,
+                    fgfrac=self.fgfrac)
             
-        #     lbl_epoch = np.concatenate(
-        #         (lbl_epoch,
-        #          np.flip(lbl_epoch, axis=1),
-        #          np.flip(lbl_epoch, axis=2)), axis=0)
+            elif self.getpatch_algo == 'stride':
+                im_this, lbl_this = getpatches_strides(
+                    im=self.im_buffer[f], lbl=self.lbl_buffer[f],
+                    patchsize=self.patchsize, 
+                    stride = self.stride,
+                    padding=self.padding)
 
-        # if self.shuffle:
-        #     shuffle_ind = np.random.permutation(np.arange(im_epoch.shape[0]))
-        #     im_epoch = im_epoch[shuffle_ind]
-        #     lbl_epoch = lbl_epoch[shuffle_ind]
+            im_patches = np.append(im_patches, im_this, axis=0)
+            lbl_patches = np.append(lbl_patches, lbl_this, axis=0)
 
-        return im_epoch, lbl_epoch
+        im_patches,lbl_patches = data_augment(im_patches, lbl_patches, rotate=self.rotate, flip=self.flip, shuffle=self.shuffle)
+        return im_patches, lbl_patches
 
-    def get_epoch_validationdata(self):
-        im_epoch = []
-        lbl_epoch = []
-        return im_epoch, lbl_epoch
 
 def data_augment(im_patches, lbl_patches, rotate=True, flip=True, shuffle=True):
     '''Rotations, flip, or shuffle im_patches and lbl_patches the same way.
@@ -153,3 +129,135 @@ def data_augment(im_patches, lbl_patches, rotate=True, flip=True, shuffle=True):
         lbl_patches = lbl_patches[shuffle_ind]
 
     return im_patches, lbl_patches
+
+
+def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
+    """Create patches where at least 'fgfrac' fraction of patches have atleast one foreground pixel in them
+    \n Assumes 'lbl' contains foreground = 1 and background = 0"""
+
+    shape = np.shape(im)
+    pad = int(round(patchsize/2))
+
+    nfg = int(round(npatches*fgfrac))
+    if nfg > 0:
+        #Find position of all foreground pixels:
+        #np.where() operation takes ~0.04 s on my cpu to processing a (2500 x 2500) array.
+        #These are used to create patches where at least one pixel will be foreground
+        xmid_fg, ymid_fg = np.where(lbl != 0)
+
+        #Introduce jitter allow foreground pixel to be anywhere (not only center) within the patch
+        xmid_fg = xmid_fg + np.random.randint(-(pad-1), (pad-1), np.size(xmid_fg), dtype=int)
+        ymid_fg = ymid_fg + np.random.randint(-(pad-1), (pad-1), np.size(ymid_fg), dtype=int)
+        ind = np.random.randint(0,np.size(xmid_fg),size=npatches,dtype=int)
+        
+        xmid_fg = xmid_fg[ind[0:nfg]]
+        ymid_fg = ymid_fg[ind[0:nfg]]
+    else:
+        xmid_fg = np.array([],dtype = int)
+        ymid_fg = np.array([],dtype = int)
+
+    #Create random positions around which patches will be calculated
+    xmid_rand = np.random.randint(pad,shape[0]-pad,size=[npatches-nfg,],dtype=int)
+    ymid_rand = np.random.randint(pad,shape[1]-pad,size=[npatches-nfg,],dtype=int)
+    
+    #Concatenate patch locations
+    xmid = np.concatenate((xmid_fg,xmid_rand), axis=0)
+    ymid = np.concatenate((ymid_fg,ymid_rand), axis=0)
+    
+    #Calculating indices on image and on patch for dim 0 (x - coordinate)
+    fxs = xmid - pad
+    fxe = xmid + pad
+    
+    pxs = np.zeros(npatches,dtype=int)
+    pxe = np.ones(npatches,dtype=int)*patchsize
+    
+    pxs[fxs<0] = abs(fxs[fxs<0])
+    pxe[fxe>shape[0]] = patchsize - (fxe[fxe>shape[0]] - shape[0])
+
+    fxs[fxs<0]=0
+    fxe[fxe>shape[0]]=shape[0]
+
+    #Repeating calculation for dim 1 (y - coordinate)
+    fys = ymid - pad
+    fye = ymid + pad
+    
+    pys = np.zeros(npatches,dtype=int)
+    pye = np.ones(npatches,dtype=int)*patchsize
+
+    pys[fys<0] = abs(fys[fys<0])
+    pye[fye>shape[1]] = patchsize - (fye[fye>shape[1]] - shape[1])
+    
+    fys[fys<0]=0
+    fye[fye>shape[1]]=shape[1]
+
+    #Assemble patches
+    im_patches = np.zeros([npatches,patchsize,patchsize,1])
+    lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
+    for i in range(0, npatches):
+        im_patches[i,pxs[i]:pxe[i],pys[i]:pye[i],0] = im[fxs[i]:fxe[i],fys[i]:fye[i]]
+        lbl_patches[i,pxs[i]:pxe[i],pys[i]:pye[i],0] = lbl[fxs[i]:fxe[i],fys[i]:fye[i]]
+    
+    return im_patches, lbl_patches
+
+
+def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
+    """Returns im_patches and lbl_patches by striding across the image.
+    \n im, lbl have the same size.
+    \n stride: determines overlap between patches.
+    \n padding=False will discard patches that don't fully lie within the image (assumes patchsize > stride)
+    """
+    shape = im.shape
+    if padding:
+        nstrides = np.round(np.array(shape)/np.array(stride))
+    else:
+        nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
+    nstrides = nstrides.astype(int)
+    npatches = nstrides[0]*nstrides[1]
+
+    #Determinexy-coordinates of the patches
+    fxs = np.arange(0, nstrides[0], 1) * stride[0]
+    fxe = fxs + patchsize
+
+    pxs = np.zeros(np.shape(fxs),dtype=int)
+    pxe = np.ones(np.shape(fxe),dtype=int)*patchsize
+    
+    pxs[fxs<0] = abs(fxs[fxs<0])
+    pxe[fxe>shape[0]] = patchsize - (fxe[fxe>shape[0]] - shape[0])
+
+    fxs[fxs<0]=0
+    fxe[fxe>shape[0]]=shape[0]
+
+    #Same for y-coordinate
+    fys = np.arange(0, nstrides[1], 1) * stride[1]
+    fye = fys + patchsize
+    
+    pys = np.zeros(np.shape(fys),dtype=int)
+    pye = np.ones(np.shape(fye),dtype=int)*patchsize
+
+    pys[fys<0] = abs(fys[fys<0])
+    pye[fye>shape[1]] = patchsize - (fye[fye>shape[1]] - shape[1])
+    
+    fys[fys<0]=0
+    fye[fye>shape[1]]=shape[1]
+    
+    ij = 0
+    im_patches = np.zeros([npatches,patchsize,patchsize,1])
+    lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
+    for i in range(len(fxs)):
+        for j in range(len(fys)):
+            im_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = im[fxs[i]:fxe[i],fys[j]:fye[j]]
+            lbl_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = lbl[fxs[i]:fxe[i],fys[j]:fye[j]]
+            ij += 1
+    return im_patches, lbl_patches
+
+
+def debug_scripts():
+    import im3dscroll as I
+    D = dataset(['53'], batch_size=4, patchsize=64, getpatch_algo='stride',npatches=2, 
+    fgfrac=.5, shuffle=True, rotate=True, flip=True, stride=(32,32), padding=True)
+    D.load_im_lbl()
+    im,lbl = D.get_patches()
+    im = im/255.
+    I.im3dscroll(im.reshape(im.shape[0],im.shape[1],im.shape[2]))
+    I.im3dscroll(lbl.reshape(lbl.shape[0],lbl.shape[1],lbl.shape[2]))
+    return
