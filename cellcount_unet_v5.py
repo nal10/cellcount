@@ -5,6 +5,7 @@ import pdb
 import pickle as Pickle
 import sys
 import time
+import timeit
 from random import shuffle
 
 import matplotlib.pyplot as plt
@@ -29,13 +30,13 @@ from dataclass import dataset, combine_patches
 
 runmode = 'viewresult' #train-new,
 
-archid = 'v5_'
-nepochs = 500
-batch_size = 4
+archid = 'costfcn-chk-v5_'
+nepochs = 100
+batch_size = 16
 patchsize = 64
-save_period = 10
+save_period = 20
 
-viewrunid = 'v5_epochs_200_batch4'
+viewrunid = 'costfcn-chk-v5_'
 base_path, rel_im_path, rel_lbl_path, rel_result_path = fileIO.set_paths()[0:4]
 runid = archid + 'epochs_' + str(nepochs)+'_' #+ time.strftime("%Y%m%d-%H%M%S")
 
@@ -99,7 +100,7 @@ def loss_fcn_wmse(y_true, y_pred):
 
 def loss_fcn_wbce(y_true, y_pred):
     #w_zeros = 0.005 # ~ 1548655/111411200 : Full dataset statistic.
-    w_zeros = K.stop_gradient(tf.reduce_mean(y_pred,axis=None)) #:Based on fraction of ones in current batch
+    w_zeros = tf.stop_gradient(tf.reduce_mean(y_pred,axis=None)) #:Based on fraction of ones in current batch
     w_ones = 1 - w_zeros
     wbce = - (w_ones * y_true * K.log(y_pred + K.epsilon())) \
            - (w_zeros * (1.-y_true) * K.log(1. - y_pred + K.epsilon()))
@@ -118,23 +119,36 @@ if runmode == 'train-new':
     checkpoint_path = base_path + rel_result_path + '/' + runid
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
-
-    train_history = model.fit_generator(train_generator, epochs=nepochs, verbose=1, callbacks=[hist_cb], 
+    
+    start_time = timeit.default_timer()
+    train_history = model.fit_generator(train_generator,
                                         validation_data=({'input_im': val_im}, {'output_im': val_lbl}),
-                                        max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+                                        initial_epoch=0, epochs=nepochs,
+                                        max_queue_size=10, workers=1,
+                                        use_multiprocessing=True, shuffle=True,
+                                        verbose=2, callbacks=[hist_cb],
+                                        )
+    elapsed = timeit.default_timer() - start_time
+
     summary = train_history.params
     summary.update(train_history.history)
-
+    summary['trainingtime'] = elapsed
+    
     # Save trained model
-    plot_model(model, to_file=base_path + rel_result_path + runid + '-arch'+'.png')
+    # plot_model(model, to_file=base_path + rel_result_path + runid + '-arch'+'.png')
     with open(base_path + rel_result_path + runid+'-summary'+'.pkl', 'wb') as file_pi:
         cPickle.dump(summary, file_pi)
 
 elif runmode == 'continue':
     print('Loading previously trained model weights')
     model.load_weights(base_path + rel_result_path + '/' + '' + '/' + '0500' + '.h5')
-    train_history = model.fit_generator(train_generator, epochs=nepochs, verbose=1, callbacks=[hist_cb], validation_data=validation_generator,
-                                        max_queue_size=10, workers=1, use_multiprocessing=True, shuffle=True, initial_epoch=0)
+    train_history = model.fit_generator(train_generator,
+                                        validation_data=({'input_im': val_im}, {'output_im': val_lbl}),
+                                        initial_epoch=0, epochs=nepochs,
+                                        max_queue_size=10, workers=1,
+                                        use_multiprocessing=True, shuffle=True,
+                                        verbose=2, callbacks=[hist_cb],
+                                        )
     summary = train_history.params
     summary.update(train_history.history)
 
