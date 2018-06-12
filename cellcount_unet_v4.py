@@ -25,7 +25,7 @@ import _pickle as cPickle
 import pickle as Pickle
 import fileIO
 import im3dscroll as I
-from custom_dataloader import DataGenerator, DataGeneratorVal
+from custom_dataloader import DataGenerator
 import tensorflow as tf
 import scipy.io as sio
 # Parameters
@@ -43,7 +43,6 @@ else:
 
 runmode = 'continue' #'trainnew' or 'viewresult' or 'continue'
 epochid = '1000' #only used if runmode is 'viewresult'
-
 
 base_path, _, _, rel_result_path = fileIO.set_paths()[0:4]
 checkpoint_path = base_path + rel_result_path + '/' + runid

@@ -53,7 +53,7 @@ class dataset(object):
     def load_im_lbl(self):
         #This loads label and image data into a list
         for f in self.file_id:
-            self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0])#<---- Choosing 1st out of 3 exact copies in channels
+            self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0]/255.)#<---- Choosing 1st out of 3 exact copies in channels
             self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif'))
         return
 
@@ -214,7 +214,7 @@ def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
     nstrides = nstrides.astype(int)
     npatches = nstrides[0]*nstrides[1]
 
-    #Determinexy-coordinates of the patches
+    #Determine xy-coordinates of the patches
     fxs = np.arange(0, nstrides[0], 1) * stride[0]
     fxe = fxs + patchsize
 
@@ -251,13 +251,56 @@ def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
     return im_patches, lbl_patches
 
 
+def combine_patches(xpatch,patchsize=64,stride=(64,64),imsize=(2500,2500),padding=True):
+    '''xpatch is a 4 D array. 
+    \n Not implemented: Mean operation to combine overlapping patches.
+    '''
+    shape=imsize
+    if padding:
+        nstrides = np.round(np.array(shape)/np.array(stride))
+    else:
+        nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
+    nstrides = nstrides.astype(int)
+
+    fxs = np.arange(0, nstrides[0], 1) * stride[0]
+    fxe = fxs + patchsize
+
+    fys = np.arange(0, nstrides[1], 1) * stride[1]
+    fye = fys + patchsize
+
+    X = np.zeros([fxe[-1],fye[-1]])
+
+    ij = 0
+    for i in range(len(fxs)):
+        for j in range(len(fys)):
+            X[fxs[i]:fxe[i],fys[j]:fye[j]] = xpatch[ij,:,:,0]
+            ij += 1
+
+    return X
+    
+
 def debug_scripts():
     import im3dscroll as I
-    D = dataset(['53'], batch_size=4, patchsize=64, getpatch_algo='stride',npatches=2, 
-    fgfrac=.5, shuffle=True, rotate=True, flip=True, stride=(32,32), padding=True)
+    D = dataset(['53'], batch_size=4, patchsize=500, getpatch_algo='stride',npatches=2, 
+    fgfrac=.5, shuffle=False, rotate=True, flip=True, stride=(500,500), padding=True)
     D.load_im_lbl()
     im,lbl = D.get_patches()
-    im = im/255.
     I.im3dscroll(im.reshape(im.shape[0],im.shape[1],im.shape[2]))
     I.im3dscroll(lbl.reshape(lbl.shape[0],lbl.shape[1],lbl.shape[2]))
+    return
+
+def debug_combine_patches():
+    import im3dscroll as I
+    import matplotlib.pyplot as plt
+
+    D = dataset(['53'], batch_size=4, patchsize=64, getpatch_algo='stride',
+        shuffle=False, rotate=True, flip=True, stride=(64,64), padding=True)
+    D.load_im_lbl()
+
+    im,lbl = D.get_patches()
+    X = combine_patches(im,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
+    plt.ion()
+    plt.imshow(X)
+    #I.im3dscroll(im.reshape(im.shape[0],im.shape[1],im.shape[2]))
+    #I.im3dscroll(lbl.reshape(lbl.shape[0],lbl.shape[1],lbl.shape[2]))
     return
