@@ -14,23 +14,18 @@ def set_paths():
     \nOutputs are: base_path, rel_im_path, rel_lbl_path, rel_result_path"""
     hostname = socket.gethostname()
     #print(hostname)
-    if hostname == 'Fruity.local' or hostname == 'fruity.lan':
+    if hostname == 'Fruity.local' or hostname == 'fruity.lan' or hostname == 'Fruity.hitronhub.home':
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
-        rel_im_path = 'dat/raw/Dataset_01_Images/'
-        rel_lbl_path = 'dat/proc/Dataset_01_Labels_v3/'
-        rel_result_path = 'dat/results/'
     elif hostname == 'rohan-ai':
         base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
-        rel_im_path = 'dat/raw/Dataset_01_Images/'
-        rel_lbl_path = 'dat/proc/Dataset_01_Labels_v3/'
-        rel_result_path = 'dat/results/'
     elif hostname == 'shenqin-ai':
         base_path = '/home/shenqin/Local/CellCount/'
-        rel_im_path = 'dat/raw/Dataset_01_Images/'
-        rel_lbl_path = 'dat/proc/Dataset_01_Labels_v3/'
-        rel_result_path = 'dat/results/'
     else:
         print('File paths for hostname = ' + hostname + 'not set!')
+
+    rel_im_path = 'dat/raw/Dataset_01_Images/'
+    rel_lbl_path = 'dat/proc/Dataset_01_Labels_v4/'
+    rel_result_path = 'dat/results/'
 
     if not(os.path.isdir(base_path) and
            os.path.isdir(base_path + rel_im_path) and

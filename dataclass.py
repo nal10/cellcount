@@ -45,7 +45,8 @@ class dataset(object):
         self.rotate = rotate
         self.flip = flip
 
-        #Data buffer list: All raw files are kept in memory. Only minibatches are given to GPU.
+        #Data buffer list: All raw files are retained in memory. 
+        #GPU only receives minibatches.
         self.im_buffer = list()
         self.lbl_buffer = list()
         return
@@ -54,7 +55,7 @@ class dataset(object):
         #This loads label and image data into a list
         for f in self.file_id:
             self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0]/255.)#<---- Choosing 1st out of 3 exact copies in channels
-            self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif'))
+            self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif')/1.)#Division by 1. forces float type.
         return
 
     def get_patches(self):
