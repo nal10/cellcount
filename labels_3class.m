@@ -1,7 +1,10 @@
 %load file into matrix IM
 
-
-base_path = '/home/rohan/';
+if ismac
+    base_path = '/Users/fruity';
+else
+    base_path = '/home/rohan/';
+end
 raw_dir = '/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_01_Images/';
 proc_dir = '/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_01_Labels_v3/';
 save_dir = '/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_01_Labels_v4/';
@@ -33,6 +36,7 @@ for i = 1:numel(fname)
     conv_L = double(bwconvhull(L==2,'objects'))*3;
     M = max(bwdil,conv_L);
     
+    
     % figure;imagesc(M);axis equal;hold on
     % title('Convex foreground')
     % B1 = bwboundaries(L>=1);
@@ -41,6 +45,7 @@ for i = 1:numel(fname)
     % visboundaries(B2)
     % drawnow;
     
+    %{
     figure;imshow(Orig);axis equal;hold on
     title('original overlay')
     ax = gca;
@@ -50,6 +55,12 @@ for i = 1:numel(fname)
     B2 = bwboundaries(M==3);
     visboundaries(ax,B2,'Color','b')
     drawnow;
+    %}
     
-    imwrite(M,[base_path,save_dir,fname_label{i}])
+    %Set foreground = 1, boundary = 2 and background = 0
+    M(M==3)=1;
+    
+    imwrite(uint8(M),[base_path,save_dir,fname_label{i}])
+    %t = Tiff([base_path,save_dir,fname_label{i}], 'w');
+    %t.write(M)
 end
