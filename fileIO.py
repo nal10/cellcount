@@ -24,7 +24,7 @@ def set_paths():
         print('File paths for hostname = ' + hostname + 'not set!')
 
     rel_im_path = 'dat/raw/Dataset_01_Images/'
-    rel_lbl_path = 'dat/proc/Dataset_01_Labels_v4/'
+    rel_lbl_path = 'dat/proc/Dataset_01_Labels_v5/'
     rel_result_path = 'dat/results/'
 
     if not(os.path.isdir(base_path) and
