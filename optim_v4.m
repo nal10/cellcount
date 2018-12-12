@@ -1,29 +1,30 @@
-%This version implements a harmonic potential to prevent points from
-%colliding.
+function [final_pos] = optim_v4(IM,init_pos,show_plots)
+%This function optimizes in cell body center positions. Manually annotated
+%cell body centers can be updated with this to use for downstream analysis.
 
-
-function [final_pos] = optim_v4(IM,init_pos)
-
-%Params:
-show_plots = true;
+%Params:-------------------------------------------------------------------
 cellbodyradius = 7;
-beta_G = 10;
-beta_H = 10;
-maxsteps = 100;
+nhoodradius = cellbodyradius; % To evaluate intensity in neighborhood of the center.
+far_thr = 1.5*cellbodyradius;     % Centers do not repel beyond this distance.
 
+k = 0.1;         % Controls repulsion potential function
+beta_G = 10;     % Step multiplier for intensity based update
+beta_H = 10;     % Step multiplier for repulsion based update
+maxsteps = 100;
+%--------------------------------------------------------------------------
 
 init_pos = unique(init_pos,'rows');
 IM = IM./max(IM(:));
 
 %Image padding
-nhoodsize = cellbodyradius;
-padsize = [2*nhoodsize,2*nhoodsize];
+padsize = [2*nhoodradius,2*nhoodradius];
 IM = padarray(IM,padsize);
 init_pos = init_pos+padsize;
 x = init_pos(:,2);
 y = init_pos(:,1);
 
 if show_plots
+    cc = parula(maxsteps);
     hf = figure;clf(hf)
     imagesc(IM);hold on
     colormap('gray')
@@ -35,26 +36,21 @@ if show_plots
     drawnow
 end
 
-%Parameters for the gaussian filter around cellcenter
-sigma = cellbodyradius/2;
-c = 1./(2*pi*sigma^2).^0.5;
-
 %Define neighbourhood
-[nhoodX,nhoodY] = ndgrid(-nhoodsize:nhoodsize,-nhoodsize:nhoodsize);
+[nhoodX,nhoodY] = ndgrid(-nhoodradius:nhoodradius,-nhoodradius:nhoodradius);
 nhoodX=nhoodX(:)';
 nhoodY=nhoodY(:)';
-rem = nhoodX.^2+nhoodY.^2> nhoodsize^2;
+rem = nhoodX.^2+nhoodY.^2> nhoodradius^2;
 nhoodX(rem)=[];
 nhoodY(rem)=[];
 
-%Plotting
-cc = parula(maxsteps);
-
 %Initialize
-step = 1;
+step = 0;
 not_converged = true;
 not_exceedmaxsteps = true;
 
+sigma = cellbodyradius/2;
+c = 1./(2*pi*sigma^2).^0.5;
 while not_exceedmaxsteps && not_converged
     %Note: implicit bsxfun assumed (R2016b+)!
     x2x = x-x';
@@ -68,11 +64,16 @@ while not_exceedmaxsteps && not_converged
     grid_ind = sub2ind(size(IM),grid_x,grid_y);
     
     I_gauss = IM(grid_ind).*exp(-1.*(((grid_y-y).^2+(grid_x-x).^2))./(2*sigma.^2));
-    
-    [H,dH_x,dH_y]  = repelfun(x2x,y2y,r);
-    
     dG_x = c./sigma.^2*sum((grid_x-x).*I_gauss,2);
     dG_y = c./sigma.^2*sum((grid_y-y).*I_gauss,2);
+    
+    
+    r_fixed = r+10e10*eye(size(r));
+    r_fixed(r_fixed>far_thr) = 10e10;
+    
+    H = sum(1./(k*(r_fixed.^2)),2);
+    dH_x = sum((1./k).*-1*r_fixed.^(-2).*2.*x2x,2);
+    dH_y = sum((1./k).*-1*r_fixed.^(-2).*2.*y2y,2);
     
     dx = beta_G*dG_x - beta_H*dH_x;
     dy = beta_G*dG_y - beta_H*dH_y;
@@ -93,12 +94,11 @@ while not_exceedmaxsteps && not_converged
     
     if show_plots
         figure(hf);
-        plot(y,x,'.','Color',cc(step,:),'MarkerSize',20);hold on
+        plot(y,x,'.','Color',cc(step+1,:),'MarkerSize',20);hold on
         drawnow;
     end
     
     step = step+1;
-    
     not_converged = max(abs(dG_x(:)))+max(abs(dG_y(:))) > 10^-10;
     not_exceedmaxsteps = step<maxsteps;
 end
@@ -106,7 +106,7 @@ end
 if not_converged
     disp('Did not converge')
     disp(['Exit at max_steps: ',num2str(step)])
-else 
+else
     disp('Converged')
     disp(['Exit at step: ',num2str(step)])
 end
@@ -118,14 +118,3 @@ if show_plots
 end
 final_pos = [y - padsize,x - padsize];
 end
-
-function [f,df_x,df_y]  = repelfun(x2x,y2y,r)
-k = 0.1;
-r = r+10e10*eye(size(r));
-r(r>10) = 10e10;
-
-f = sum(1./(k*(r.^2)),2);
-df_x = sum((1./k).*-1*r.^(-2).*2.*x2x,2);
-df_y = sum((1./k).*-1*r.^(-2).*2.*y2y,2);
-end
-
