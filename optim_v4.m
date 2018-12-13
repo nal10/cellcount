@@ -17,7 +17,8 @@ init_pos = unique(init_pos,'rows');
 IM = IM./max(IM(:));
 
 %Image padding
-padsize = [2*nhoodradius,2*nhoodradius];
+padding = 2*nhoodradius;
+padsize = [padding,padding];
 IM = padarray(IM,padsize);
 init_pos = init_pos+padsize;
 x = init_pos(:,2);
@@ -116,5 +117,5 @@ if show_plots
     plot(y,x,'sc','MarkerSize',20);
     drawnow
 end
-final_pos = [y - padsize(2),x - padsize(1)];
+final_pos = [y - padding,x - padding];
 end
