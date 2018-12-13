@@ -10,7 +10,7 @@ far_thr = 1.5*cellbodyradius;     % Centers do not repel beyond this distance.
 k = 0.1;         % Controls repulsion potential function
 beta_G = 10;     % Step multiplier for intensity based update
 beta_H = 10;     % Step multiplier for repulsion based update
-maxsteps = 100;
+maxsteps = 1000;
 %--------------------------------------------------------------------------
 
 init_pos = unique(init_pos,'rows');
@@ -31,8 +31,8 @@ if show_plots
     plot(y,x,'sr','MarkerSize',20);
     caxis([0 0.3])
     %Debug limits
-    xlim([1617,1838])
-    ylim([416,638])
+    %xlim([1617,1838])
+    %ylim([416,638])
     drawnow
 end
 
@@ -116,5 +116,5 @@ if show_plots
     plot(y,x,'sc','MarkerSize',20);
     drawnow
 end
-final_pos = [y - padsize,x - padsize];
+final_pos = [y - padsize(2),x - padsize(1)];
 end
