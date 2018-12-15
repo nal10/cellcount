@@ -7,7 +7,7 @@ csv_path='/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images
 
 fname=dir(im_path);
 fname={fname(:).name}';
-IM_files=fname(contains(fname,'tif'));
+IM_files=fname(contains(fname,'.tif'));
 
 for i=1:numel(IM_files)
     try
@@ -35,7 +35,7 @@ for i=1:numel(IM_files)
         drawnow;
         
         %Write to new csv
-        %csvwrite([csv_path,strrep(IM_files{i},'.tif','-optim.csv')],rnew);
+        csvwrite([csv_path,strrep(IM_files{i},'.tif','-optim.csv')],rnew);
      
     end
 end

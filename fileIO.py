@@ -23,8 +23,8 @@ def set_paths():
     else:
         print('File paths for hostname = ' + hostname + 'not set!')
 
-    rel_im_path = 'dat/raw/Dataset_01_Images/'
-    rel_lbl_path = 'dat/proc/Dataset_01_Labels_v5/'
+    rel_im_path = 'dat/raw/Dataset_02_Images/'
+    rel_lbl_path = 'dat/proc/Dataset_02_Labels_v1/'
     rel_result_path = 'dat/results/'
 
     if not(os.path.isdir(base_path) and
@@ -43,7 +43,7 @@ def get_fileid():
     \n fid_lbl -- Labels available"""    
 
     base_path, rel_im_path, rel_lbl_path = set_paths()[0:3]
-    search_pattern_im = base_path + rel_im_path + '*raw.tif'
+    search_pattern_im = base_path + rel_im_path + '*.tif'
     search_pattern_lbl = base_path + rel_lbl_path + '*labels.tif'
     
     full_fid_im = glob.glob(search_pattern_im)

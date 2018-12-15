@@ -54,7 +54,7 @@ class dataset(object):
     def load_im_lbl(self):
         #This loads label and image data into a list
         for f in self.file_id:
-            self.im_buffer.append(skio.imread(self.im_path + f + '_raw.tif')[:,:,0]/255.)#<---- Choosing 1st out of 3 exact copies in channels
+            self.im_buffer.append(skio.imread(self.im_path + f + '.tif')/255.)#<---- Choosing 1st out of 3 exact copies in channels
             self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif')/1.)#Division by 1. forces float type.
         return
 
@@ -63,7 +63,6 @@ class dataset(object):
 
         im_patches = np.zeros((0, self.patchsize, self.patchsize, 1))
         lbl_patches = np.zeros((0, self.patchsize, self.patchsize, 1))
-
         for f in range(len(self.im_buffer)):
             if self.getpatch_algo == 'random':
                 im_this, lbl_this = getpatches_randwithfg(
@@ -77,6 +76,12 @@ class dataset(object):
                     im=self.im_buffer[f], lbl=self.lbl_buffer[f],
                     patchsize=self.patchsize, 
                     stride = self.stride,
+                    padding=self.padding)
+
+            elif self.getpatch_algo == 'inpadded':
+                im_this, lbl_this = get_inpadded_patches_strides(
+                    im=self.im_buffer[f], lbl=self.lbl_buffer[f],
+                    patchsize=self.patchsize, 
                     padding=self.padding)
 
             im_patches = np.append(im_patches, im_this, axis=0)
@@ -138,13 +143,12 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
 
     shape = np.shape(im)
     pad = int(round(patchsize/2))
-
     nfg = int(round(npatches*fgfrac))
     if nfg > 0:
         #Find position of all foreground pixels:
         #np.where() operation takes ~0.04 s on my cpu to processing a (2500 x 2500) array.
         #These are used to create patches where at least one pixel will be foreground
-        xmid_fg, ymid_fg = np.where(lbl != 0)
+        xmid_fg, ymid_fg = np.where(lbl == 2)
 
         #Introduce jitter allow foreground pixel to be anywhere (not only center) within the patch
         xmid_fg = xmid_fg + np.random.randint(-(pad-1), (pad-1), np.size(xmid_fg), dtype=int)
@@ -254,7 +258,6 @@ def getpatches_strides(im, lbl, patchsize=64, stride = (32, 32),padding=True):
 
 def combine_patches(xpatch,patchsize=64,stride=(64,64),imsize=(2500,2500),padding=True):
     '''xpatch is a 4 D array. 
-    \n Not implemented: Mean operation to combine overlapping patches.
     '''
     shape=imsize
     if padding:
@@ -279,6 +282,93 @@ def combine_patches(xpatch,patchsize=64,stride=(64,64),imsize=(2500,2500),paddin
 
     return X
     
+
+
+
+def get_inpadded_patches_strides(im, lbl, inner_pad=12, patchsize=64, padding=True):
+    """Returns im_patches and lbl_patches by striding across the image.
+    \n im, lbl have the same size.
+    \n stride: determines overlap between patches.
+    \n padding=False will discard patches that don't fully lie within the image (assumes patchsize > stride)
+    """
+    stride = (patchsize-inner_pad*2,patchsize-inner_pad*2)
+    im_padded = np.pad(im,((inner_pad,inner_pad),),mode='constant',constant_values=(0.,))
+    lbl_padded = np.pad(lbl,((inner_pad,inner_pad),),mode='constant',constant_values=(0.,))
+
+    shape = im_padded.shape
+    if padding:
+        nstrides = np.round(np.array(shape)/np.array(stride)) + 1
+    else:
+        nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
+    nstrides = nstrides.astype(int)
+    npatches = nstrides[0]*nstrides[1]
+
+    #Determine xy-coordinates of the patches
+    fxs = np.arange(0, nstrides[0], 1) * stride[0]
+    fxe = fxs + patchsize
+
+    pxs = np.zeros(np.shape(fxs),dtype=int)
+    pxe = np.ones(np.shape(fxe),dtype=int)*patchsize
+    
+    pxs[fxs<0] = abs(fxs[fxs<0])
+    pxe[fxe>shape[0]] = patchsize - (fxe[fxe>shape[0]] - shape[0])
+
+    fxs[fxs<0]=0
+    fxe[fxe>shape[0]]=shape[0]
+
+    #Same for y-coordinate
+    fys = np.arange(0, nstrides[1], 1) * stride[1]
+    fye = fys + patchsize
+    
+    pys = np.zeros(np.shape(fys),dtype=int)
+    pye = np.ones(np.shape(fye),dtype=int)*patchsize
+
+    pys[fys<0] = abs(fys[fys<0])
+    pye[fye>shape[1]] = patchsize - (fye[fye>shape[1]] - shape[1])
+    
+    fys[fys<0]=0
+    fye[fye>shape[1]]=shape[1]
+    
+    ij = 0
+    im_patches = np.zeros([npatches,patchsize,patchsize,1])
+    lbl_patches = np.zeros([npatches,patchsize,patchsize,1])
+    for i in range(len(fxs)):
+        for j in range(len(fys)):
+            im_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = im_padded[fxs[i]:fxe[i],fys[j]:fye[j]]
+            lbl_patches[ij,pxs[i]:pxe[i],pys[j]:pye[j],0] = lbl_padded[fxs[i]:fxe[i],fys[j]:fye[j]]
+            ij += 1
+    return im_patches, lbl_patches
+
+
+def combine_inpadded_patches(xpatch,inner_pad=12,patchsize=64,imsize=(2500,2500),padding=True):
+    '''xpatch is a 4 D array. 
+    '''
+    
+    inner_patchsize = patchsize-inner_pad*2
+    stride = (inner_patchsize,inner_patchsize)
+
+    shape=(imsize[0]+2*inner_pad,imsize[1]+2*inner_pad)
+    if padding:
+        nstrides = np.round(np.array(shape)/np.array(stride)) + 1
+    else:
+        nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
+    nstrides = nstrides.astype(int)
+
+    fxs = np.arange(0, nstrides[0], 1) * stride[0]
+    fxe = fxs + inner_patchsize
+
+    fys = np.arange(0, nstrides[1], 1) * stride[1]
+    fye = fys + inner_patchsize
+
+    X = np.zeros([fxe[-1],fye[-1]])
+
+    ij = 0
+    for i in range(len(fxs)):
+        for j in range(len(fys)):
+            X[fxs[i]:fxe[i],fys[j]:fye[j]] = xpatch[ij,inner_pad:-inner_pad,inner_pad:-inner_pad,0]
+            ij += 1
+
+    return X
 
 def debug_scripts():
     import im3dscroll as I

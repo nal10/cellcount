@@ -1,6 +1,7 @@
 import random
 import numpy as np
-from keras.utils import Sequence
+from keras.utils import Sequence, to_categorical
+
 
 class DataGenerator(Sequence):
     '''Create new batch of randomly chosen patches for each epoch. 
@@ -18,11 +19,9 @@ class DataGenerator(Sequence):
         
     def __getitem__(self, idx):
         'Generate one batch of data'
-        # Generate indices of the batch
         im_batch = self.im_epoch[idx * self.batch_size:(idx + 1) * self.batch_size]
         lbl_batch = self.lbl_epoch[idx * self.batch_size:(idx + 1) * self.batch_size]
-        return im_batch, {'output_im_1': np.array(lbl_batch == 1).astype('float'),
-                          'output_im_2': np.array(lbl_batch == 2).astype('float')}
+        return im_batch, {'output_im': to_categorical(np.array(lbl_batch),num_classes=3)}
         
     def on_epoch_end(self):
         self.im_epoch,self.lbl_epoch = self.dataset.get_patches()
