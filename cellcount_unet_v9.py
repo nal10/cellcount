@@ -14,18 +14,19 @@ from random import shuffle
 
 
 #import keras.activations.softmax as Softmax
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as sio
 import tensorflow as tf
 from keras import backend as K
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint
+from keras.callbacks import LearningRateScheduler, ModelCheckpoint, Callback
 from keras.layers import (Concatenate, Conv2D, Cropping2D, Dropout, Input,
                           MaxPooling2D, UpSampling2D, Dense, Activation)
 from keras.losses import binary_crossentropy, mean_squared_error
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.utils import plot_model
+from keras.utils import plot_model, to_categorical
+
 
 import _pickle as cPickle
 import fileIO
@@ -37,20 +38,20 @@ import pdb
 
 runmode = 'train-new'#viewresult or train-new
 
-archid = 'Data_v2_Run_v1'
+archid = 'Data_v2_Run_v2'
 nepochs = 1500
 batch_size = 4
 patchsize = 128
 save_period = 50
 
-viewrunid = 'Data_v2_Run_v1'
+viewrunid = 'Data_v2_Run_v2'
 base_path, rel_im_path, rel_lbl_path, rel_result_path = fileIO.set_paths()[0:4]
 runid = archid + 'epochs_' + str(nepochs) #+ time.strftime("%Y%m%d-%H%M%S")
 
 
-#Training data 
+#Training data
 train_fileid = ['268778_157', '268778_77',
-                '271317_143', '271317_95',
+                '271317_95', '271317_143',
                 '275376_147', '275376_175',
                 '275705_109', '275705_131',
                 '279578_111', '279578_123',
@@ -58,20 +59,19 @@ train_fileid = ['268778_157', '268778_77',
                 '299773_57', '299773_68',
                 '301199_74', '315576_116',
                 '316809_60', '324471_113',
-                '371808_52', '386384_47',
-                '387573_103_1', '389052_108',
-                '389052_119']
+                '330689_118', '371808_52',
+                '386384_47', '387573_103_1',
+                '389052_108', '389052_119']
 
 train_data = dataset(train_fileid, batch_size=batch_size, patchsize=patchsize,
-                        getpatch_algo='random', npatches=10**2, fgfrac=.5,
+                        getpatch_algo='random', npatches=10**3, fgfrac=.1,
                         shuffle=True, rotate=True, flip=True)
 train_data.load_im_lbl()
 train_generator = DataGenerator(train_data)
 
-
 #Validation data 
-val_fileid = ['330689_118', '371808_60',
-              '387573_103', '324471_53','333241_113']
+val_fileid = ['371808_60', '387573_103',
+              '324471_53', '333241_113']
 val_data = dataset(val_fileid, batch_size=batch_size, patchsize=patchsize,
                       getpatch_algo='stride', stride=(64, 64), padding=True,
                       shuffle=False, rotate=False, flip=False)
@@ -142,20 +142,34 @@ hist_cb = ModelCheckpoint(filepath=(base_path + rel_result_path + runid + '/' + 
                           verbose=1, save_best_only=False, save_weights_only=True,
                           mode='auto', period=save_period)
 
+class cb(Callback):
+    def __init__(self, filename):
+        self.filename = filename
+        f = open(filename, 'w')
+        f.close()
+
+    def on_epoch_end(self, epoch, logs):
+        with open(self.filename, 'a') as f:
+            f.write(
+                str(epoch) + '\t' +
+                str(logs['loss']) + '\t' +
+                '\n')
+            #str(logs['val_loss']) + '\t' +
+
+
 if runmode == 'train-new':
     checkpoint_path = base_path + rel_result_path + '/' + runid
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
     
+    cb_obj = cb(filename=base_path + rel_result_path + runid + '/' +runid+'.log')
     start_time = timeit.default_timer()
-    val_input={'input_im': val_im}
-    val_output = {'output_im_1': np.array(val_lbl == 1).astype('float'),
-                  'output_im_2': np.array(val_lbl == 2).astype('float')}
+    #validation_data=[{'input_im': val_im}, {'output_im': to_categorical(np.array(val_lbl), num_classes=3)}]
     train_history = model.fit_generator(train_generator,
                                         initial_epoch=0, epochs=nepochs,
                                         shuffle=True,
-                                        verbose=2, callbacks=[hist_cb],
-                                        )
+                                        verbose=2, callbacks=[hist_cb, cb_obj])
+
     elapsed = timeit.default_timer() - start_time
 
     summary = train_history.params
@@ -194,72 +208,4 @@ elif runmode == 'viewresult':
     with open(base_path + rel_result_path + 'Labelsv5_epochs_1-summary.pkl', 'rb') as file_pi:
         summary = Pickle.load(file_pi)
 
-D = dataset(['324471_53'], batch_size=4, patchsize=patchsize, getpatch_algo='stride',
-    shuffle=False, rotate=False, flip=False, stride=(patchsize,patchsize), padding=True)
-D.load_im_lbl()
-val_im,val_lbl = D.get_patches()
-val_lbl_pred = model.predict(val_im, batch_size=1, verbose=1)
 
-
-val_lbl_bg = np.expand_dims(val_lbl_pred[:,:,:,0],axis=3)
-val_lbl_fg = np.expand_dims(val_lbl_pred[:,:,:,1],axis=3)
-val_lbl_bo = np.expand_dims(val_lbl_pred[:,:,:,2],axis=3)
-val_lbl_predicted = np.expand_dims(np.argmax(val_lbl_pred, axis=3),axis=3)
-
-val_lbl_full = combine_patches(val_lbl,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-val_im_full = combine_patches(val_im,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-
-#lbl_pred_full = combine_patches(val_lbl_pred,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-val_lbl_fg = combine_patches(val_lbl_fg,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-val_lbl_bo = combine_patches(val_lbl_bo,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-val_lbl_predicted = combine_patches(val_lbl_predicted,patchsize=D.patchsize,stride=D.stride,imsize=D.im_buffer[0].shape,padding=True)
-
-plt.ion()
-
-
-plt.figure()
-ax2 = plt.imshow(val_lbl_full)
-
-plt.figure()
-ax3 = plt.imshow(val_im_full)
-
-plt.figure()
-ax3 = plt.imshow(val_lbl_fg)
-
-plt.figure()
-ax3 = plt.imshow(val_lbl_bo)
-
-plt.figure()
-ax4 = plt.imshow(val_lbl_predicted)
-
-# val_lbl_pred = model.predict(val_im, batch_size=1, verbose=1)
-# val_im = np.reshape(val_im, (np.shape(val_im)[0:3]))
-# val_lbl = np.reshape(val_lbl, (np.shape(val_lbl)[0:3]))
-# val_lbl_pred = np.reshape(val_lbl_pred, (np.shape(val_lbl_pred)[0:3]))
-
-# I.im3dscroll(val_im)
-# I.im3dscroll(val_lbl)
-# I.im3dscroll(val_lbl_pred)
-
-plt.ion()
-fig1 = plt.figure()
-ax1 = fig1.add_subplot(111)
-ax1.plot(summary['loss'])
-
-
-# savepath = '/home/shenqin/Local/CellCount/dat/results/'
-# # Following block generates and saves results for all images
-# file_list = ['53','123','77','60','57','167','68','113','157','143','109','175','95','119','74','131','111']
-
-# #for currentfile in file_list:
-# #  showresults = DataGenerator([currentfile], batch_size)
-# #  val_im = showresults.x
-# #  val_lbl = showresults.y
-# #  val_lbl_pred = model.predict(val_im, batch_size=1, verbose=1)
-# #  val_im = np.reshape(val_im, (np.shape(val_im)[0:3]))
-# #  val_lbl = np.reshape(val_lbl, (np.shape(val_lbl)[0:3]))
-# #  val_lbl_pred = np.reshape(val_lbl_pred, (np.shape(val_lbl_pred)[0:3]))
-
-# #  sio.savemat(savepath + runid + currentfile +'_val_im.mat',{'val_im':val_im})
-# #  sio.savemat(savepath + runid + currentfile +'_val_lbl.mat',{'val_lbl':val_lbl})
-# #  sio.savemat(savepath + runid + currentfile +'_val_lbl_pred.mat',{'val_lbl_pred':val_lbl_pred})
