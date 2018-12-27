@@ -64,7 +64,7 @@ train_fileid = ['268778_157', '268778_77',
                 '389052_108', '389052_119']
 
 train_data = dataset(train_fileid, batch_size=batch_size, patchsize=patchsize,
-                        getpatch_algo='random', npatches=10**3, fgfrac=.1,
+                        getpatch_algo='random', npatches=10**3, fgfrac=.5,
                         shuffle=True, rotate=True, flip=True)
 train_data.load_im_lbl()
 train_generator = DataGenerator(train_data)

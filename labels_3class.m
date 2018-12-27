@@ -45,7 +45,7 @@ for i = 1:numel(fname)
     % visboundaries(B2)
     % drawnow;
     
-    %{
+    %
     figure;imshow(Orig);axis equal;hold on
     title('original overlay')
     ax = gca;
@@ -60,7 +60,7 @@ for i = 1:numel(fname)
     %Set foreground = 1, boundary = 2 and background = 0
     M(M==3)=1;
     
-    imwrite(uint8(M),[base_path,save_dir,fname_label{i}])
+    %imwrite(uint8(M),[base_path,save_dir,fname_label{i}])
     %t = Tiff([base_path,save_dir,fname_label{i}], 'w');
     %t.write(M)
 end

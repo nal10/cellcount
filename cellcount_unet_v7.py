@@ -2,7 +2,7 @@
 # In this version, the UNet is trained on 3 classes. 
 # Labels: 0 = background
 # Labels: 1 = foreground
-# Labels: 0 = boundary
+# Labels: 2 = boundary
 
 import os
 import pdb
@@ -33,7 +33,7 @@ from dataclass import dataset, combine_patches
 import pdb
 
 
-runmode = 'continue'#viewresult or train-new
+runmode = 'viewresult'#viewresult or train-new
 
 archid = '3cat_v1_'
 nepochs = 200
@@ -41,7 +41,7 @@ batch_size = 16
 patchsize = 128
 save_period = 10
 
-viewrunid = '3cat_v1_'
+viewrunid = '3cat_v1_100'
 base_path, rel_im_path, rel_lbl_path, rel_result_path = fileIO.set_paths()[0:4]
 runid = archid + 'epochs_' + str(nepochs) #+ time.strftime("%Y%m%d-%H%M%S")
 
@@ -49,7 +49,7 @@ runid = archid + 'epochs_' + str(nepochs) #+ time.strftime("%Y%m%d-%H%M%S")
 #Training data 
 train_fileid = ['123','77','60','57','167','68','113','157','143','109','175','95','74','131','111']
 train_data = dataset(train_fileid, batch_size=batch_size, patchsize=patchsize,
-                        getpatch_algo='random', npatches=10**4, fgfrac=.5,
+                        getpatch_algo='random', npatches=10**2, fgfrac=.5,
                         shuffle=True, rotate=True, flip=True)
 train_data.load_im_lbl()
 train_generator = DataGenerator(train_data)
@@ -177,11 +177,11 @@ elif runmode == 'continue':
         cPickle.dump(summary, file_pi)
 
 elif runmode == 'viewresult':
-    model.load_weights(base_path + rel_result_path + viewrunid + '/' + '0100' + '.h5')
-    with open(base_path + rel_result_path + viewrunid +'-summary'+'.pkl', 'rb') as file_pi:
+    model.load_weights(base_path + rel_result_path + '3cat_v1_epochs_100' + '/' + '0100' + '.h5')
+    with open(base_path + rel_result_path + '3cat_v1_epochs_100-summary.pkl', 'rb') as file_pi:
         summary = Pickle.load(file_pi)
 
-D = dataset(['53'], batch_size=4, patchsize=patchsize, getpatch_algo='stride',
+D = dataset(['119'], batch_size=4, patchsize=patchsize, getpatch_algo='stride',
     shuffle=False, rotate=False, flip=False, stride=(patchsize,patchsize), padding=True)
 D.load_im_lbl()
 val_im,val_lbl = D.get_patches()

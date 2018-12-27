@@ -2,8 +2,8 @@ function [X] = gen_optimized_annotation()
 %This function optimizes manual markings of cell body centers.
 
 
-im_path='/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
-csv_path='/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
+im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
+csv_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
 
 fname=dir(im_path);
 fname={fname(:).name}';
@@ -22,7 +22,7 @@ for i=1:numel(IM_files)
     end
     if success
         %Perform optimization
-        [rnew] = optim_v4(IM,r,0);
+        [rnew] = optim_v4(IM,r,1);
         drawnow;
         
         %Check image
@@ -35,7 +35,7 @@ for i=1:numel(IM_files)
         drawnow;
         
         %Write to new csv
-        csvwrite([csv_path,strrep(IM_files{i},'.tif','-optim.csv')],rnew);
+        %csvwrite([csv_path,strrep(IM_files{i},'.tif','-optim.csv')],rnew);
      
     end
 end

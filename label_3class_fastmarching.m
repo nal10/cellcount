@@ -5,8 +5,8 @@ if ismac
 else
     base_path = '/home/rohan/';
 end
-raw_dir = '/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_01_Images/';
-proc_dir = '/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_01_Labels_v3/';
+raw_dir = '/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
+proc_dir = '/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_02_Labels/';
 save_dir = '/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_01_Labels_v4/';
 
 %Orig = imread('/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_01_Images/53_raw.tif');

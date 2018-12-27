@@ -28,7 +28,7 @@ from custom_dataloader import DataGenerator
 from dataclass import dataset, combine_patches
 
 
-runmode = 'viewresult' #train-new,
+runmode = 'viewresult'#viewresult or train-new
 
 archid = 'costfcn-chk-v5_'
 nepochs = 100
@@ -36,9 +36,9 @@ batch_size = 16
 patchsize = 64
 save_period = 20
 
-viewrunid = 'costfcn-chk-v5_'
+viewrunid = 'costfcn-chk-v5_epochs_100'
 base_path, rel_im_path, rel_lbl_path, rel_result_path = fileIO.set_paths()[0:4]
-runid = archid + 'epochs_' + str(nepochs)+'_' #+ time.strftime("%Y%m%d-%H%M%S")
+runid = archid + 'epochs_' + str(nepochs) #+ time.strftime("%Y%m%d-%H%M%S")
 
 
 #Training data 
@@ -126,7 +126,7 @@ if runmode == 'train-new':
                                         initial_epoch=0, epochs=nepochs,
                                         max_queue_size=10, workers=1,
                                         use_multiprocessing=True, shuffle=True,
-                                        verbose=2, callbacks=[hist_cb],
+                                        verbose=1, callbacks=[hist_cb],
                                         )
     elapsed = timeit.default_timer() - start_time
 
@@ -159,7 +159,7 @@ elif runmode == 'continue':
         cPickle.dump(summary, file_pi)
 
 elif runmode == 'viewresult':
-    model.load_weights(base_path + rel_result_path + '/' + viewrunid + '/' + '0200' + '.h5')
+    model.load_weights(base_path + rel_result_path + viewrunid + '/' + '0100' + '.h5')
     with open(base_path + rel_result_path + viewrunid +'-summary'+'.pkl', 'rb') as file_pi:
         summary = Pickle.load(file_pi)
 
