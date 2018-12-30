@@ -297,7 +297,7 @@ def get_inpadded_patches_strides(im, lbl, inner_pad=12, patchsize=64, padding=Tr
 
     shape = im_padded.shape
     if padding:
-        nstrides = np.round(np.array(shape)/np.array(stride)) + 1
+        nstrides = np.floor(np.array(shape)/np.array(stride)) + 1
     else:
         nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
     nstrides = nstrides.astype(int)
@@ -349,7 +349,7 @@ def combine_inpadded_patches(xpatch,inner_pad=12,patchsize=64,imsize=(2500,2500)
 
     shape=(imsize[0]+2*inner_pad,imsize[1]+2*inner_pad)
     if padding:
-        nstrides = np.round(np.array(shape)/np.array(stride)) + 1
+        nstrides = np.floor(np.array(shape)/np.array(stride)) + 1
     else:
         nstrides = np.round((np.array(shape)-patchsize)/np.array(stride))
     nstrides = nstrides.astype(int)
