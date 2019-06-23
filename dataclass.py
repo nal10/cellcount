@@ -149,6 +149,11 @@ def getpatches_randwithfg(im, lbl, patchsize=64, npatches=10, fgfrac=.5):
         #np.where() operation takes ~0.04 s on my cpu to processing a (2500 x 2500) array.
         #These are used to create patches where at least one pixel will be foreground
         xmid_fg, ymid_fg = np.where(lbl == 2)
+        
+        if np.size(xmid_fg)==0:
+            xmid_fg = np.random.randint(pad,shape[0]-pad,size=[nfg,],dtype=int)
+            ymid_fg = np.random.randint(pad,shape[1]-pad,size=[nfg,],dtype=int)
+
 
         #Introduce jitter allow foreground pixel to be anywhere (not only center) within the patch
         xmid_fg = xmid_fg + np.random.randint(-(pad-1), (pad-1), np.size(xmid_fg), dtype=int)
