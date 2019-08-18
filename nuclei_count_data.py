@@ -1,6 +1,8 @@
 import numpy as np
 import skimage.io as skio
-from keras.utils import Sequence, to_categorical
+from keras.utils import to_categorical
+from keras.utils.data_utils import Sequence
+import pdb
 
 
 def IOpaths(exp_name='nuclei_count'):
@@ -11,15 +13,13 @@ def IOpaths(exp_name='nuclei_count'):
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
     elif '/home/rohan' in curr_path:
         base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
-    elif '/home/shenqin' in curr_path:
-        base_path = '/home/shenqin/Local/CellCount/'
-    else: #beaker relative paths
+    else:
         print('File paths not set!')
 
     dir_pth={}
     dir_pth['im']          = base_path+'dat/raw/Dataset_03_Images_clean/'
     dir_pth['lbl']         = base_path+'dat/proc/Dataset_03_Labels_v1/'
-    dir_pth['result']      = base_path+'dat/results/' + exp_name
+    dir_pth['result']      = base_path+'dat/results/' + exp_name + '/'
     dir_pth['checkpoints'] = base_path+'dat/results/' + exp_name + '/checkpoints/'
     dir_pth['logs']        = base_path+'dat/results/' + exp_name + '/logs/'
     
@@ -30,6 +30,10 @@ def IOpaths(exp_name='nuclei_count'):
 
 
 class DataClass(object):
+    BACKGROUND=0
+    BOUNDARY=1
+    FOREGROUND=2
+    
     def __init__(self, paths, file_id, pad):
         im = skio.imread(paths['im'] + file_id + '.tif')/255.0 
         im = np.pad(im, pad, 'reflect')
@@ -40,19 +44,17 @@ class DataClass(object):
 
         self.pad = pad
         self.im_lbl = np.stack([im,lbl],axis=-1)
-        self.fg_xy = np.nonzero(lbl_zeropadded>0)
+        self.fg_xy = np.nonzero(lbl_zeropadded!=self.BACKGROUND)
         self.fg_xy = np.asarray(self.fg_xy).transpose()
-
-        self._shuffle_fg_xy()
         self.id = file_id
-        return
-
-    def _shuffle_fg_xy(self):
-        np.random.shuffle(self.fg_xy)
         return
 
     def __str__(self):
         return "File id : {}".format(self.id)
+
+    def _shuffle_fg_xy(self):
+        np.random.shuffle(self.fg_xy)
+        return
 
     def _random_fg_xy(self):
         '''Returns a single random foreground patch midpoint xy. Empty if no fg label.
@@ -75,7 +77,7 @@ class DataClass(object):
 
 
 class DataGenerator(Sequence):
-    '''Generator pops one batch of data at a time
+    '''Generator pops one batch of data at a time. Shift, rotation and flip augmentations are performed at random.
         \n `D_list`: List of class objects from which to generate training data 
     '''
     
@@ -105,6 +107,7 @@ class DataGenerator(Sequence):
         while count<self.batch_size:
             r = np.random.rand()
             d = np.random.randint(len(self.dataObj))
+            #print(r,d)
             if r<self.max_fg_frac:
                 ind = self.dataObj[d]._random_fg_xy()
                 #Shift foreground images so that it's not always the central pixel
@@ -138,7 +141,33 @@ class DataGenerator(Sequence):
         return {'input_im':np.expand_dims(self.im,-1)},{'output_im': to_categorical(np.expand_dims(self.lbl,-1),num_classes=3)}
         
     def on_epoch_end(self):
-        #Check whether random numbers are repeated every epoch.
-        print('\n')
-        print(np.random.randint(1000))
         return
+
+
+def validationData(file_ids, dir_pth, max_fg_frac=0.8, patch_size=128, n_patches_perfile=20):
+    '''Returns fixed set of patches from validation file list'''
+
+    dataObj_list = [DataClass(paths=dir_pth, file_id=f, pad=int(patch_size)) for f in file_ids]
+    
+    all_count=0
+    im = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
+    lbl = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
+    for d in range(len(dataObj_list)):
+        count_thisfile=0
+        while count_thisfile<n_patches_perfile:
+            r = np.random.rand()
+            if r<max_fg_frac:
+                ind = dataObj_list[d]._random_fg_xy()
+            else:
+                ind = dataObj_list[d]._random_xy()
+                
+            if ind is not None:
+                ind = np.squeeze(ind)
+                im_lbl = dataObj_list[d].im_lbl[ind[0]-int(patch_size/2):ind[0]+int(patch_size/2),
+                                                ind[1]-int(patch_size/2):ind[1]+int(patch_size/2),:]
+                
+                im[all_count,:,:] = im_lbl[:,:,0]
+                lbl[all_count,:,:] = im_lbl[:,:,1]
+                count_thisfile = count_thisfile + 1
+                all_count = all_count + 1
+    return {'input_im':np.expand_dims(im,-1)},{'output_im': to_categorical(np.expand_dims(lbl,-1),num_classes=3)}
