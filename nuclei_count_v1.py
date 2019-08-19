@@ -22,14 +22,14 @@ from keras.layers import (Activation, BatchNormalization,
                                             MaxPooling2D, UpSampling2D)
 from keras.models import Model
 from keras.optimizers import Adam
-from nuclei_count_data import DataClass, DataGenerator, IOpaths, validationData
+from nuclei_count_data import DataClass, DataGenerator, IOpaths, validationData, trainingData
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--run_mode",          default='train',       type=str,    help="Options; new, continue, infer")
 
 parser.add_argument("--max_fg_frac",       default=0.8,           type=int,    help="Fraction of patches with foreground pixels in them")
 parser.add_argument("--batch_size",        default=4,             type=int,    help="Batch size")
-parser.add_argument("--n_steps_per_epoch", default=2000,          type=int,   help="Gradient steps per epoch")
+parser.add_argument("--n_steps_per_epoch", default=2000,          type=int,    help="Gradient steps per epoch")
 parser.add_argument("--n_epoch",           default=1000,          type=int,    help="Number of epochs to train")
 parser.add_argument("--warm_start",        default=0,             type=int,    help="Load weights")
 
@@ -52,8 +52,7 @@ def main(run_mode='train',max_fg_frac=0.8,
     print(fileid)
 
     patch_size = 128
-    
-    chkpt_save_period = 10
+    chkpt_save_period = 100
     dir_pth = IOpaths(exp_name=exp_name)
 
     unet = Unet()
@@ -75,39 +74,48 @@ def main(run_mode='train',max_fg_frac=0.8,
                     '316809_60',     '324471_113',    '330689_118',   '371808_52',
                     '386384_47',     '387573_103_1',  '389052_108',   '389052_119',
                     '352293-0020_1', '352293-0020_2', '370548-0034_1','370607-0034_1',
-                    '370548-0034_2', '352293-0123']
+                    '370548-0034_2', '352293-0123',   '370607-0124_3','368669-0020', 
+                    '370548-0034_3']                    
     
-
-    train_fileid=['268778_157',    '268778_77',     '271317_95',    '271317_143',
-                  '352293-0020_1', '352293-0020_2', '370548-0034_1','370607-0034_1']
-    
-    traindata_generator = DataGenerator(file_ids=train_fileid, dir_pth=dir_pth, 
-                                        max_fg_frac=max_fg_frac, batch_size=batch_size, patch_size=patch_size ,
-                                        n_steps_per_epoch=n_steps_per_epoch)
+    training_dataObj_list = [DataClass(paths=dir_pth, file_id=f, pad=int(patch_size)) for f in train_fileid]
 
     #Validation data-----------------------------------------------------------------
     val_fileid = ['371808_60',   '387573_103', '324471_53', '333241_113',
-                  '368669-0020', '370607-0124','370548-0034_3','370548-0034_4','370607-0124_3']
+                  '370607-0124', '370548-0034_4']
 
     valdata_fixed = validationData(file_ids=val_fileid, dir_pth=dir_pth, 
                                    max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
 
     #Training Loop-------------------------------------------------------------------
-
     if warm_start==1:
         wt_file = dir_pth['result'] + 'warm-start-12-2018.h5'
         print('Loading weights from ' + wt_file)
-        unet.fit_generator(traindata_generator,
-                       validation_data=valdata_fixed,
-                       initial_epoch=0, epochs=n_epoch, verbose=1,
-                       callbacks=[bestnet_cb, history_cb, csvlog])
         unet.load_weights(wt_file)
+        traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
+                                   max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
+        unet.fit(traindata_fixed[0]['input_im'],traindata_fixed[1]['output_im'],
+                        validation_data=valdata_fixed,
+                        initial_epoch=0, epochs=1, verbose=1,
+                        callbacks=[history_cb, csvlog])
+        unet.load_weights(wt_file)
+        
 
     start_time = timeit.default_timer()
-    unet.fit_generator(traindata_generator,
-                       validation_data=valdata_fixed,
-                       initial_epoch=0, epochs=n_epoch, verbose=1,
-                       callbacks=[bestnet_cb, history_cb, csvlog])
+    for e in range(n_epoch):
+        traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
+                                   max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
+
+        #Rotate randomly for whole epoch data:
+        rand_k=np.random.choice([0,1,2,3],size=1)[0]
+        traindata_fixed[0]['input_im'] = np.rot90(traindata_fixed[0]['input_im'],k=rand_k,axes=(1,2))
+        traindata_fixed[1]['output_im'] = np.rot90(traindata_fixed[1]['output_im'],k=rand_k,axes=(1,2))
+        
+        #Fit model here:
+        _e=e+1
+        unet.fit(traindata_fixed[0]['input_im'],traindata_fixed[1]['output_im'],
+                        validation_data=valdata_fixed,
+                        initial_epoch=e, epochs=_e, verbose=1,
+                        callbacks=[history_cb, csvlog])
     elapsed = timeit.default_timer() - start_time
     print('Time elapsed: '+str(elapsed))
     return

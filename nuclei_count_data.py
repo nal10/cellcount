@@ -171,3 +171,30 @@ def validationData(file_ids, dir_pth, max_fg_frac=0.8, patch_size=128, n_patches
                 count_thisfile = count_thisfile + 1
                 all_count = all_count + 1
     return {'input_im':np.expand_dims(im,-1)},{'output_im': to_categorical(np.expand_dims(lbl,-1),num_classes=3)}
+
+
+
+def trainingData(dataObj_list, dir_pth, max_fg_frac=0.8, patch_size=128, n_patches_perfile=20):
+    '''Returns fixed set of patches from validation file list'''
+    all_count=0
+    im = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
+    lbl = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
+    for d in range(len(dataObj_list)):
+        count_thisfile=0
+        while count_thisfile<n_patches_perfile:
+            r = np.random.rand()
+            if r<max_fg_frac:
+                ind = dataObj_list[d]._random_fg_xy()
+            else:
+                ind = dataObj_list[d]._random_xy()
+                
+            if ind is not None:
+                ind = np.squeeze(ind)
+                im_lbl = dataObj_list[d].im_lbl[ind[0]-int(patch_size/2):ind[0]+int(patch_size/2),
+                                                ind[1]-int(patch_size/2):ind[1]+int(patch_size/2),:]
+                
+                im[all_count,:,:] = im_lbl[:,:,0]
+                lbl[all_count,:,:] = im_lbl[:,:,1]
+                count_thisfile = count_thisfile + 1
+                all_count = all_count + 1
+    return {'input_im':np.expand_dims(im,-1)},{'output_im': to_categorical(np.expand_dims(lbl,-1),num_classes=3)}
