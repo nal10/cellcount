@@ -60,7 +60,7 @@ def main(run_mode='train',max_fg_frac=0.8,
     
 
     #Callbacks during training------------------------------------------------------
-    csvlog = CSVLogger(filename=dir_pth['logs'] + fileid +'.csv')
+    csvlog = CSVLogger(filename=dir_pth['logs'] + fileid +'.csv', append = True)
     bestnet_cb = ModelCheckpoint(filepath=(dir_pth['result'] + fileid + '-bestwt.h5'),
                                  monitor='val_loss', verbose=1, save_best_only=True)
     history_cb = ModelCheckpoint(filepath=(dir_pth['checkpoints'] + fileid + '{epoch:04d}' + '.h5'),
@@ -88,7 +88,7 @@ def main(run_mode='train',max_fg_frac=0.8,
 
     #Training Loop-------------------------------------------------------------------
     if warm_start==1:
-        wt_file = dir_pth['result'] + 'warm-start-12-2018.h5'
+        wt_file = dir_pth['result'] + 'warm_start_BN_2k.h5'
         print('Loading weights from ' + wt_file)
         unet.load_weights(wt_file)
         traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
