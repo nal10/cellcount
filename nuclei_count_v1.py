@@ -52,7 +52,7 @@ def main(run_mode='train',max_fg_frac=0.8,
     print(fileid)
 
     patch_size = 128
-    chkpt_save_period = 100
+    chkpt_save_period = 500
     dir_pth = IOpaths(exp_name=exp_name)
 
     unet = Unet()
@@ -75,7 +75,13 @@ def main(run_mode='train',max_fg_frac=0.8,
                     '386384_47',     '387573_103_1',  '389052_108',   '389052_119',
                     '352293-0020_1', '352293-0020_2', '370548-0034_1','370607-0034_1',
                     '370548-0034_2', '352293-0123',   '370607-0124_3','368669-0020', 
-                    '370548-0034_3']                    
+                    '370548-0034_3']
+
+    #Selected based on analysis of false positives:
+    trainmore_fileid = ['370607-0124_3', '370607-0124_3', '370548-0034_1', '352293-0020_1',
+                        '370607-0124_3', '370607-0124_3', '370548-0034_1']
+
+    train_fileid = train_fileid + trainmore_fileid
     
     training_dataObj_list = [DataClass(paths=dir_pth, file_id=f, pad=int(patch_size)) for f in train_fileid]
 
@@ -88,15 +94,14 @@ def main(run_mode='train',max_fg_frac=0.8,
 
     #Training Loop-------------------------------------------------------------------
     if warm_start==1:
-        wt_file = dir_pth['result'] + 'warm_start_BN_2k.h5'
+        wt_file = dir_pth['result'] + 'warm_start_BN_42k.h5'
         print('Loading weights from ' + wt_file)
         unet.load_weights(wt_file)
         traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
                                    max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
         unet.fit(traindata_fixed[0]['input_im'],traindata_fixed[1]['output_im'],
                         validation_data=valdata_fixed,
-                        initial_epoch=0, epochs=1, verbose=1,
-                        callbacks=[history_cb, csvlog])
+                        initial_epoch=0, epochs=1, verbose=1)
         unet.load_weights(wt_file)
         
 
@@ -118,13 +123,14 @@ def main(run_mode='train',max_fg_frac=0.8,
                         callbacks=[history_cb, csvlog])
     elapsed = timeit.default_timer() - start_time
     print('Time elapsed: '+str(elapsed))
+    unet.save_weights(dir_pth['result']+fileid+'.h5')
     return
 
 def Unet():
     '''
     Return a Unet model. Hyperparameters appropriate set for the mesoscale connectivity dataset.
     '''
-    conv_properties = {'activation': 'relu', 'padding': 'same', 'kernel_initializer': 'he_normal'}
+    conv_properties = {'activation': 'elu', 'padding': 'same', 'kernel_initializer': 'he_normal'}
     input_im = Input(shape=(128, 128, 1), name='input_im')
 
     conv1 = Conv2D(filters=8, kernel_size=3, **conv_properties)(input_im)   # (batch,128, 128,   8)

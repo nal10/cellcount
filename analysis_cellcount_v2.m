@@ -1,10 +1,11 @@
 function [counts,diffcount] = analysis_cellcount_v2()
 
 
-csv_orig_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
-csv_optim_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
-seg_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/results/Data_v2_Run_v3epochs_1500_Segmentations/';
-mat_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_02_Mat_v1/';
+csv_orig_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
+csv_optim_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/raw/Dataset_02_Images/';
+%seg_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/results/Data_v2_Run_v3epochs_1500_Segmentations/';
+seg_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/results/Data_v2_Run_v3epochs_1500_Segmentations_no_rotate_inference/';
+mat_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_02_Mat_v1/';
 
 train_fileid = {'268778_157', '268778_77',...
                 '271317_95', '271317_143',...
@@ -23,8 +24,7 @@ val_fileid = {'371808_60', '387573_103',...
               '324471_53'};
 
 %omitted '333241_113' - this has no cells.
-          
-imlist = {'387573_103'};
+imlist = {'333241_113'};
 %imlist = {train_fileid{:},val_fileid{:}};
 %imlist = {'389052_108','371808_52'}
 thr = 0.5;
@@ -57,7 +57,7 @@ for i = 1:numel(imlist)
     close all
     %}
     
-    %
+    %{
     mat = load([mat_dir,imlist{i},'.mat'],'IM','S','D','T');
     [lbl,Tadapt] = gen_Tadapt(mat.IM,mat.S,mat.D,mat.T);
     %Plot annotation before and after optimization-------------------------
@@ -176,7 +176,7 @@ diffcount = bsxfun(@minus,count_man,count_alg);
 disp(diffcount);
 counts = [count_man,count_alg];
 
-figure(999);clf(999)
+figure(1000);clf(1000)
 n = (1:5:2000)';
 rootn = n.^0.5;
 %errorbarpatch(n,n,rootn,[0.7 0.7 0.7],0.3);hold on

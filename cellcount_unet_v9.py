@@ -45,7 +45,8 @@ train_fileid = ['268778_157',    '268778_77',     '271317_95',    '271317_143',
                 '316809_60',     '324471_113',    '330689_118',   '371808_52',
                 '386384_47',     '387573_103_1',  '389052_108',   '389052_119',
                 '352293-0020_1', '352293-0020_2', '370548-0034_1','370607-0034_1',
-                '370548-0034_2', '352293-0123']
+                '370548-0034_2', '352293-0123',   '370607-0124_3','368669-0020', 
+                '370548-0034_3']
 
 train_data = dataset(train_fileid, batch_size=batch_size, patchsize=patchsize,
                         getpatch_algo='random', npatches=10**3, fgfrac=.5,
@@ -56,7 +57,7 @@ train_generator = DataGenerator(train_data)
 
 #Validation data 
 val_fileid = ['371808_60',   '387573_103', '324471_53', '333241_113',
-              '368669-0020', '370607-0124','370548-0034_3','370548-0034_4','370607-0124_3']
+              '370607-0124', '370548-0034_4']
 
 val_data = dataset(val_fileid, batch_size=batch_size, patchsize=patchsize,
                       getpatch_algo='stride', stride=(64, 64), padding=True,
@@ -84,24 +85,24 @@ pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)	                        # (batch, 
 conv5 = Conv2D(filters=4, kernel_size=3, **conv_properties)(pool4)		# (batch, 8, 8, 4)
 drop5 = Dropout(rate=0.2)(conv5)						                # (batch, 8, 8, 4)
  
-up6 =   UpSampling2D(size=(2, 2))(drop5)			                    # (batch, 16, 16, 4)
-up6 =   Conv2D(filters=4, kernel_size=2, **conv_properties)(up6)		# (batch, 16, 16, 4)
-cat6 =  Concatenate(axis=3)([drop4, up6])  		                        # (batch, 16, 16, 4)
+up6   = UpSampling2D(size=(2, 2))(drop5)			                    # (batch, 16, 16, 4)
+up6   = Conv2D(filters=4, kernel_size=2, **conv_properties)(up6)		# (batch, 16, 16, 4)
+cat6  = Concatenate(axis=3)([drop4, up6])  		                        # (batch, 16, 16, 4)
 conv6 = Conv2D(filters=4, kernel_size=3, **conv_properties)(cat6)		# (batch, 16, 16, 4)
 
-up7 =   UpSampling2D(size=(2, 2))(conv6)			                    # (batch, 32, 32, 4)
-up7 =   Conv2D(4, 2, **conv_properties)(up7)		                    # (batch, 32, 32, 4)
-cat7 =  Concatenate(axis=3)([conv3, up7])		                        # (batch, 32, 32, 8)
+up7   =  UpSampling2D(size=(2, 2))(conv6)			                    # (batch, 32, 32, 4)
+up7   =  Conv2D(4, 2, **conv_properties)(up7)		                    # (batch, 32, 32, 4)
+cat7  =  Concatenate(axis=3)([conv3, up7])		                        # (batch, 32, 32, 8)
 conv7 = Conv2D(filters=4, kernel_size=3, **conv_properties)(cat7)		# (batch, 32, 32, 4)
 
-up8 =   UpSampling2D(size=(2, 2))(conv7)			                    # (batch, 64, 64, 4)
-up8 =   Conv2D(filters=8, kernel_size=2, **conv_properties)(up8)		# (batch, 64, 64, 8)
-cat8 =  Concatenate(axis=3)([conv2, up8])  		                        # (batch, 64, 64, 16)
+up8   = UpSampling2D(size=(2, 2))(conv7)			                    # (batch, 64, 64, 4)
+up8   = Conv2D(filters=8, kernel_size=2, **conv_properties)(up8)		# (batch, 64, 64, 8)
+cat8  = Concatenate(axis=3)([conv2, up8])  		                        # (batch, 64, 64, 16)
 conv8 = Conv2D(filters=8, kernel_size=3, **conv_properties)(cat8)		# (batch, 64, 64, 8)
 
-up9 = UpSampling2D(size=(2, 2))(conv8)			                        # (batch, 128,128, 8)
-up9 = Conv2D(filters=8, kernel_size=2, **conv_properties)(up9)		    # (batch, 128,128, 8)
-cat9 = Concatenate(axis=3)([conv1, up9])  		                        # (batch, 128,128, 16)
+up9   = UpSampling2D(size=(2, 2))(conv8)			                        # (batch, 128,128, 8)
+up9   = Conv2D(filters=8, kernel_size=2, **conv_properties)(up9)		    # (batch, 128,128, 8)
+cat9  = Concatenate(axis=3)([conv1, up9])  		                        # (batch, 128,128, 16)
 conv9 = Conv2D(filters=8, kernel_size=3, **conv_properties)(cat9)		# (batch, 128,128, 8) 
 output_im = Conv2D(filters=3,kernel_size=1, activation='softmax', name='output_im')(conv9)
 
@@ -117,7 +118,6 @@ def loss_fcn_wbce(y_true, y_pred):
            tf.multiply((1. - lbl), tf.log(1. - pred + tf.keras.backend.epsilon()))
     weighted_ce = tf.multiply(weights, ce)
     return tf.reduce_mean(weighted_ce, axis=None)
-
 
 model.compile(optimizer=Adam(),
               loss={'output_im': loss_fcn_wbce},

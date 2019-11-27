@@ -12,26 +12,26 @@ import random
 def set_paths():
     """Return the pathname of the data directory.
     \nOutputs are: base_path, rel_im_path, rel_lbl_path, rel_result_path"""
-    hostname = socket.gethostname()
-    #print(hostname)
-    if hostname == 'Fruity.local' or hostname == 'fruity.lan' or hostname == 'Fruity.hitronhub.home':
-        base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
-    elif hostname == 'rohan-ai':
-        base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
-    elif hostname == 'shenqin-ai':
-        base_path = '/home/shenqin/Local/CellCount/'
-    else:
-        print('File paths for hostname = ' + hostname + 'not set!')
+    from pathlib import Path
 
-    rel_im_path = 'dat/raw/Dataset_02_Images/'
-    rel_lbl_path = 'dat/proc/Dataset_02_Labels_v1/'
+    curr_path = str(Path().absolute())
+    if '/Users/fruity' in curr_path:
+        base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
+    elif '/home/rohan' in curr_path:
+        base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
+    elif '/home/shenqin' in curr_path:
+        base_path = '/home/shenqin/Local/CellCount/'
+    else: #beaker relative paths
+        print('File paths not set!')
+
+    rel_im_path = 'dat/raw/Dataset_03_Images_clean/'
+    rel_lbl_path = 'dat/proc/Dataset_03_Labels_v1/'
     rel_result_path = 'dat/results/'
 
-    if not(os.path.isdir(base_path) and
+    assert (os.path.isdir(base_path) and
            os.path.isdir(base_path + rel_im_path) and
            os.path.isdir(base_path + rel_lbl_path) and
-           os.path.isdir(base_path + rel_result_path)):
-        print('One or more of paths in set_paths() do not exist!')
+           os.path.isdir(base_path + rel_result_path)), "Check if paths exist"
 
     return base_path, rel_im_path, rel_lbl_path, rel_result_path
 
@@ -41,6 +41,7 @@ def get_fileid():
     \n fid_im_lbl -- Both IM and corresponding Labels available
     \n fid_im -- IM available 
     \n fid_lbl -- Labels available"""    
+
 
     base_path, rel_im_path, rel_lbl_path = set_paths()[0:3]
     search_pattern_im = base_path + rel_im_path + '*.tif'

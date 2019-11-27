@@ -5,7 +5,7 @@ function [final_pos] = optim_v4(IM,init_pos,show_plots)
 %Params:-------------------------------------------------------------------
 cellbodyradius = 7;
 nhoodradius = cellbodyradius; % To evaluate intensity in neighborhood of the center.
-far_thr = 1.5*cellbodyradius;     % Centers do not repel beyond this distance.
+far_thr = 1;%1.5*cellbodyradius;     % Centers do not repel beyond this distance.
 
 k = 0.1;         % Controls repulsion potential function
 beta_G = 10;     % Step multiplier for intensity based update
