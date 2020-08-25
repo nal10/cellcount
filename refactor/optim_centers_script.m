@@ -24,7 +24,9 @@ for i=1:numel(IM_files)
     end
     if success
         %Perform optimization
-        [rnew] = optim_centers(IM,r,1);
+        [ii,jj] = rem_duplicates(r,1);
+        r(jj,:) = [];
+        [rnew] = optim_centers(IM,r,0);
         drawnow;
         
         %Check image
