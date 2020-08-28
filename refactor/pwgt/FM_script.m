@@ -1,4 +1,4 @@
-function [] = gen_FM_mat_script(f1,f2)
+function [] = FM_script(f1,f2)
 %Inputs are indices to files. To process all files, 
 %set f1 = 1 and f2 = length(im_dir)
 

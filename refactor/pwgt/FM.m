@@ -5,7 +5,7 @@
 % unisotropy is the wave speed unisotropy in a uniform intensity image
 % Output is Logical KT==1;
 
-function [nonsimple,KT,D,T]=FastMarchingTube(IM,SVr,Max_Known_Dist,unisotropy)
+function [nonsimple,KT,D,T]=FM(IM,SVr,Max_Known_Dist,unisotropy)
 output=true;
 pad=2;
 Max_Known_Time=inf;

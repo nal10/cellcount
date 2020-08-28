@@ -1,4 +1,4 @@
-function [Labels,Tadapt] = gen_lbl_from_mat(IM,S,D,T)
+function [Labels,Tadapt] = lbl_from_FM(IM,S,D,T)
 padsize = 20;
 typicalcellsize=10;
 small_region_thr = 10;
