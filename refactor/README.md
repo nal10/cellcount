@@ -4,6 +4,8 @@ Dataset:
  - 2-channel data is collected. Ideally, only cells marked with the red fluorescent label should appear in the red channel (same for green)
  - Due to bleed-through, we notice a tendency for the cells labeled with Green fluorescent label to appear in the red channel. 
  - The degree of bleed-through varies for each animal
+ - 32.0 Mb per image
+ - 1.25 Gb for 2x for channels + 2x for label for a 20 image training dataset. Can load all of this in memory for patch generation.
 
 Annotations:
  - Initial ground truth consists of approximate cell centers 
@@ -21,9 +23,5 @@ Models:
  - `notebooks/first_run.ipynb`: Unet tested via overfitting on a small patch. 
  - `notebooks/base_unet_datagen.ipynb`: Tests for data generator
 
-
 Todo:
-
- - 32.0 Mb per image
- - 1.25 Gb for 2x for channels + 2x for label for a 20 image training dataset. Can load all of this in memory for patch generation.
- - Dataloader should perform some transformations simultaneously on label and image, others only on the image. 
+ - Use transformations to augment label and image (some transformations are exclusive to the image)
