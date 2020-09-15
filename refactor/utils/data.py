@@ -1,8 +1,8 @@
 import glob
+from aicsimageio import imread
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
-from aicsimageio import AICSImage, imread
+from torch.utils.data import Dataset,Sampler
 
 class ai224_RG(Dataset):
     """Dataset for training images
@@ -55,8 +55,9 @@ class ai224_RG(Dataset):
         self.lbl = np.pad(np.concatenate(lbl_list,axis=0),pad_width=[[0,0],[0,0],[pad,pad],[pad,pad]],mode='reflect')
 
         self.n_tiles = self.IM.shape[0]
-        self.im_size = np.array(self.IM.shape)
-        self.im_size_orig = self.im_size-pad
+        self.im_shape = np.array(self.IM.shape)
+        self.tile_shape_padded = self.im_shape[-2:]
+        self.tile_shape_orig = self.tile_shape_padded-2*pad
         self.patch_size = patch_size
         self.pad = pad
         return
@@ -70,3 +71,33 @@ class ai224_RG(Dataset):
         im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         lbl_item = self.lbl[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         return (im_item,lbl_item)
+
+
+
+class MyRandomSampler(Sampler):
+    r"""Samples elements randomly. If without replacement, then sample from a shuffled dataset.
+    If with replacement, then user can specify :attr:`num_samples` to draw.
+
+    Arguments:
+        n_tiles (int): number of tiles in the dataset
+        max_x (int): max value of x that is used to cut a patch from the tile, i.e. x:x+patch_size
+        max_y (int): max value of y that is used to cut a patch from the tile, i.e. y:y+patch_size
+        num_samples (int): number of samples to draw. 
+        generator (Generator): Generator used in sampling.
+    """
+
+    def __init__(self, n_tiles, max_x, max_y, num_samples=None, generator=None):
+        self.num_samples = num_samples
+        self.n_tiles = n_tiles
+        self.max_x = max_x
+        self.max_y = max_y
+        self.generator = generator
+
+    def __iter__(self):
+        tile_rand_tensor = torch.randint(high=self.n_tiles, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        imx_rand_tensor = torch.randint(high=self.max_x, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        imy_rand_tensor = torch.randint(high=self.max_y, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        return iter(zip(tile_rand_tensor.tolist(),imx_rand_tensor.tolist(),imy_rand_tensor.tolist()))
+
+    def __len__(self):
+        return self.num_samples
