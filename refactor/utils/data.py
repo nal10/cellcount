@@ -70,7 +70,7 @@ class ai224_RG(Dataset):
             idx = idx.tolist()
         im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         lbl_item = self.lbl[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
-        return (im_item,lbl_item)
+        return {'im':im_item,'lbl':lbl_item}
 
 
 
