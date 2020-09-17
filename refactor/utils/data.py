@@ -18,7 +18,9 @@ class ai224_RG(Dataset):
                  pad=130,
                  patch_size = 260,
                  im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/',
-                 lbl_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Unet_tiles_082020/'):
+                 lbl_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Unet_tiles_082020/',
+                 np_transform=None,
+                 torch_transforms=None):
         
 
         super().__init__()
@@ -46,6 +48,9 @@ class ai224_RG(Dataset):
             R_lbl = one_hot(get_arr(R_lbl_file))
             G_IM = get_arr(G_IM_file)
             R_IM = get_arr(R_IM_file)
+
+            assert G_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
+            assert R_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
             
             IM_list.append(np.expand_dims(np.concatenate([G_IM,R_IM],axis=0),axis=0))
             lbl_list.append(np.expand_dims(np.concatenate([G_lbl,R_lbl],axis=0),axis=0))
@@ -60,6 +65,8 @@ class ai224_RG(Dataset):
         self.tile_shape_orig = self.tile_shape_padded-2*pad
         self.patch_size = patch_size
         self.pad = pad
+        self.np_transform = np_transform
+        self.torch_transforms = torch_transforms
         return
 
     def __len__(self):
@@ -70,8 +77,17 @@ class ai224_RG(Dataset):
             idx = idx.tolist()
         im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         lbl_item = self.lbl[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
-        return {'im':im_item,'lbl':lbl_item}
 
+        #Flipping arrays is much more efficient if directly performed on numpy arrays first
+        if self.np_transform is not None:
+            im_item,lbl_item = self.np_transform(im_item,lbl_item)
+
+        im_item = torch.as_tensor(im_item)
+        lbl_item = torch.as_tensor(lbl_item)
+
+        if self.torch_transforms is not None:
+            return self.torch_transforms({'im':im_item,'lbl':lbl_item})
+        return {'im':im_item,'lbl':lbl_item}
 
 
 class MyRandomSampler(Sampler):
