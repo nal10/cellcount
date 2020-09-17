@@ -19,15 +19,13 @@ class ai224_RG(Dataset):
                  patch_size = 260,
                  im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/',
                  lbl_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Unet_tiles_082020/',
+                 subset = 'train',
                  np_transform=None,
                  torch_transforms=None):
         
 
         super().__init__()
-        file_list = glob.glob(im_path+'/*_green.tif')
-        file_list = glob.glob(im_path+'*_green.tif')
-        file_list = [f.split('green.tif')[0] for f in file_list]
-        file_list = [f.split(im_path)[1] for f in file_list]
+        file_list = self.get_file_list(subset=subset,im_path=im_path)
 
         IM_list = []
         lbl_list = []
@@ -88,6 +86,38 @@ class ai224_RG(Dataset):
         if self.torch_transforms is not None:
             return self.torch_transforms({'im':im_item,'lbl':lbl_item})
         return {'im':im_item,'lbl':lbl_item}
+
+    def get_file_list(self,subset,im_path):
+        """ 
+        Args:
+            subset (str): 'train','val' or 'all'
+            im_path (str): 
+
+        Returns:
+            list of filenames
+        """
+        validation_file_list = excluded_files = ['527100_1027993339_0065_tile_9_8_', '527103_1027700130_0060_tile_7_3_','529690_1030079321_0085_tile_8_13_']
+        file_list = glob.glob(im_path+'/*_green.tif')
+        file_list = glob.glob(im_path+'*_green.tif')
+        file_list = [f.split('green.tif')[0] for f in file_list]
+        file_list = [f.split(im_path)[1] for f in file_list]
+        assert len(file_list)>0, "Files not found at {}".format(im_path)
+
+        if subset=='train':
+            x = list(set(file_list)-set(validation_file_list))
+            print("Found {} files".format(len(x)))
+            return x 
+        elif subset=='val':
+            x = set(file_list)
+            x = list(x.intersection(set(validation_file_list)))
+            print("Found {} files".format(len(x)))
+            return x
+        elif subset=='all':
+            x = list(set(file_list))
+            print("Found {} files".format(len(x)))
+            return x
+        else:
+            print('name a valid subset')
 
 
 class MyRandomSampler(Sampler):
