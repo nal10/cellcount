@@ -23,12 +23,15 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 3. `pwgt/lbl_from_FM.m`: Uses intermediate .mat files to generate individual label maps.
 
 
-#### Models:
+#### Models and tests:
 
  - `notebooks/first_run.ipynb`: Unet tested via overfitting on a small patch. 
- - `notebooks/base_unet_datagen.ipynb`: Tests for data generator
+ - `notebooks/base_unet_datagen.ipynb`: Tests for data generators, logging etc. Contains a snapshot of different stages of development and tests.  
 
 
 #### Todo:
 
- - Use transformations to augment label and image (some transformations are exclusive to the image)
+ - Conditional checkpointing
+ - Add metrics and loss functions
+ - Tiling+stitching for inference
+ - Script for labels --> nucleus center co-ordinates
