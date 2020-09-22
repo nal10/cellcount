@@ -96,7 +96,7 @@ class ai224_RG(Dataset):
         Returns:
             list of filenames
         """
-        validation_file_list = excluded_files = ['527100_1027993339_0065_tile_9_8_', '527103_1027700130_0060_tile_7_3_','529690_1030079321_0085_tile_8_13_']
+        validation_file_list = ['527100_1027993339_0065_tile_9_8_', '527103_1027700130_0060_tile_7_3_','529690_1030079321_0085_tile_8_13_']
         file_list = glob.glob(im_path+'/*_green.tif')
         file_list = glob.glob(im_path+'*_green.tif')
         file_list = [f.split('green.tif')[0] for f in file_list]
@@ -132,18 +132,23 @@ class MyRandomSampler(Sampler):
         generator (Generator): Generator used in sampling.
     """
 
-    def __init__(self, n_tiles, max_x, max_y, num_samples=None, generator=None):
+    def __init__(self, n_tiles, min_x=0, min_y=0, max_x=2048, max_y=2048, num_samples=None, generator=None):
         self.num_samples = num_samples
         self.n_tiles = n_tiles
+        self.min_x = min_x
+        self.min_y = min_y
         self.max_x = max_x
         self.max_y = max_y
         self.generator = generator
 
     def __iter__(self):
-        tile_rand_tensor = torch.randint(high=self.n_tiles, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
-        imx_rand_tensor = torch.randint(high=self.max_x, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
-        imy_rand_tensor = torch.randint(high=self.max_y, size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
-        return iter(zip(tile_rand_tensor.tolist(),imx_rand_tensor.tolist(),imy_rand_tensor.tolist()))
+        tile_rand_tensor = torch.randint(high=self.n_tiles,
+                                         size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        imx_rand_tensor = torch.randint(low=self.min_x, high=self.max_x,
+                                        size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        imy_rand_tensor = torch.randint(low=self.min_y, high=self.max_y,
+                                        size=(self.num_samples,), dtype=torch.int64, generator=self.generator)
+        return iter(zip(tile_rand_tensor.tolist(), imx_rand_tensor.tolist(), imy_rand_tensor.tolist()))
 
     def __len__(self):
         return self.num_samples
