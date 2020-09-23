@@ -33,5 +33,5 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
  - Conditional checkpointing
  - Add metrics and loss functions
- - Tiling+stitching for inference
+ - Tiling+stitching for prediction
  - Script for labels --> nucleus center co-ordinates
