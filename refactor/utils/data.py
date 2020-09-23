@@ -3,6 +3,7 @@ from aicsimageio import imread
 import numpy as np
 import torch
 from torch.utils.data import Dataset,Sampler
+from pathlib import Path
 
 class ai224_RG(Dataset):
     """Dataset for training images
@@ -121,8 +122,7 @@ class ai224_RG(Dataset):
 
 
 class MyRandomSampler(Sampler):
-    r"""Samples elements randomly. If without replacement, then sample from a shuffled dataset.
-    If with replacement, then user can specify :attr:`num_samples` to draw.
+    r"""Returns indices to randomly specify patches tiles in the dataset.
 
     Arguments:
         n_tiles (int): number of tiles in the dataset
@@ -152,3 +152,96 @@ class MyRandomSampler(Sampler):
 
     def __len__(self):
         return self.num_samples
+
+
+#==============================================================================
+class Inference_ai224_RG(Dataset):
+    """Dataset for training images
+
+    Args:
+        im_path: directory path with image .tif files 
+        patch_size: patch_size of returned items
+        output_size: output size of the network.
+    """
+
+    def __init__(self,
+                 patch_size = 260,
+                 output_size = 172,
+                 im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/',
+                 fname='527100_1027993339_0065_tile_9_8_'):
+        
+        super().__init__()
+        G_IM_file=im_path+fname+'green.tif'
+        R_IM_file=im_path+fname+'red.tif'
+        assert Path(G_IM_file).is_file(), f'{G_IM_file} not found'
+        assert Path(R_IM_file).is_file(), f'{R_IM_file} not found'
+        get_arr = lambda f: np.expand_dims(np.squeeze(imread(f)),axis=0)
+        
+        IM_list = []
+        G_IM = get_arr(G_IM_file)
+        R_IM = get_arr(R_IM_file)
+
+        assert G_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
+        assert R_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
+        
+        #(tiles,channels,x,y)
+        IM_list.append(np.expand_dims(np.concatenate([G_IM,R_IM],axis=0),axis=0))
+
+        IM_shape = IM_list[0].shape[-2:]
+        n_x_patches = np.ceil(IM_shape[0]/output_size).astype(int)
+        n_y_patches = np.ceil(IM_shape[1]/output_size).astype(int)
+
+        pad_xi = int((patch_size-output_size)/2)
+        pad_yi = int((patch_size-output_size)/2)
+        pad_xf = int(n_x_patches*output_size + (patch_size-output_size)/2 - IM_shape[0])
+        pad_yf = int(n_y_patches*output_size + (patch_size-output_size)/2 - IM_shape[1])
+        
+        self.IM = np.pad(np.concatenate(IM_list,axis=0),pad_width=[[0,0],[0,0],[pad_xi,pad_xf],[pad_yi,pad_yf]],mode='reflect')
+        
+        self.n_tiles = self.IM.shape[0]
+        self.im_shape = np.array(self.IM.shape)
+        self.patch_size = patch_size
+        self.output_size = output_size
+
+        self.pad_xi = pad_xi
+        self.pad_yi = pad_yi
+        self.pad_xf = pad_xf
+        self.pad_yf = pad_yf
+
+        self.n_x_patches = n_x_patches
+        self.n_y_patches = n_y_patches
+        return
+
+    def __len__(self):
+        return self.n_tiles
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
+        im_item = torch.as_tensor(im_item)
+        return {'im':im_item}
+
+class Inference_Sampler(Sampler):
+    r"""Returns indices to sequentially generate patches as per dataset spec.
+    Use.
+
+    Arguments:
+        dataset: 
+    """
+
+    def __init__(self, dataset):
+        self.n_tiles = int(dataset.n_tiles)
+        self.output_size= int(dataset.output_size)
+        self.n_x_patches = int(dataset.n_x_patches)
+        self.n_y_patches = int(dataset.n_y_patches)
+        
+    def __iter__(self):
+        for t in range(self.n_tiles):
+            for i in range(self.n_x_patches):
+                for j in range(self.n_y_patches):
+                    #print(t, int(i*self.output_size),int(j*self.output_size))
+                    yield([t, i*self.output_size, j*self.output_size])
+
+    def __len__(self):
+        return self.n_x_patches*self.n_y_patches
