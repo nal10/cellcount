@@ -21,6 +21,7 @@ class ai224_RG(Dataset):
                  im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/',
                  lbl_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Unet_tiles_082020/',
                  subset = 'train',
+                 one_hot_labels = False,
                  np_transform=None,
                  torch_transforms=None):
         
@@ -43,8 +44,13 @@ class ai224_RG(Dataset):
             G_IM_file = im_path+f+'green.tif'
             R_IM_file = im_path+f+'red.tif'
             
-            G_lbl = one_hot(get_arr(G_lbl_file))
-            R_lbl = one_hot(get_arr(R_lbl_file))
+            if one_hot_labels:
+                G_lbl = one_hot(get_arr(G_lbl_file))
+                R_lbl = one_hot(get_arr(R_lbl_file))
+            else:
+                G_lbl = get_arr(G_lbl_file)
+                R_lbl = get_arr(R_lbl_file)
+
             G_IM = get_arr(G_IM_file)
             R_IM = get_arr(R_IM_file)
 
@@ -155,7 +161,7 @@ class MyRandomSampler(Sampler):
 
 
 #==============================================================================
-class Inference_ai224_RG(Dataset):
+class Pred_ai224_RG(Dataset):
     """Dataset for training images
 
     Args:
@@ -188,6 +194,7 @@ class Inference_ai224_RG(Dataset):
         IM_list.append(np.expand_dims(np.concatenate([G_IM,R_IM],axis=0),axis=0))
 
         IM_shape = IM_list[0].shape[-2:]
+        
         n_x_patches = np.ceil(IM_shape[0]/output_size).astype(int)
         n_y_patches = np.ceil(IM_shape[1]/output_size).astype(int)
 
@@ -199,7 +206,8 @@ class Inference_ai224_RG(Dataset):
         self.IM = np.pad(np.concatenate(IM_list,axis=0),pad_width=[[0,0],[0,0],[pad_xi,pad_xf],[pad_yi,pad_yf]],mode='reflect')
         
         self.n_tiles = self.IM.shape[0]
-        self.im_shape = np.array(self.IM.shape)
+        self.tile_shape_orig = IM_shape[-2:]
+        self.tile_shape_padded = np.array(self.IM.shape[-2:])
         self.patch_size = patch_size
         self.output_size = output_size
 
@@ -220,9 +228,10 @@ class Inference_ai224_RG(Dataset):
             idx = idx.tolist()
         im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         im_item = torch.as_tensor(im_item)
-        return {'im':im_item}
+        idx = torch.as_tensor(idx)
+        return {'im':im_item, 'idx':idx[-2:]}
 
-class Inference_Sampler(Sampler):
+class Pred_Sampler(Sampler):
     r"""Returns indices to sequentially generate patches as per dataset spec.
     Use.
 
