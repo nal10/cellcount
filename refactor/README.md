@@ -34,5 +34,9 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
  - Script for labels --> nucleus center co-ordinates
 
 
- #### Pytorch loss implementation for segmentation
+#### Pytorch loss implementation for segmentation
   - https://github.com/JunMa11/SegLoss/tree/master/losses_pytorch
+
+
+#### Experiment notes:
+1. Trained for 15,000 epochs with CrossEntropy loss, commit `5bc7c9`. Missing many dim nuclei, particularly in G channel.
