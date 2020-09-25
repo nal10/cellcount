@@ -32,6 +32,8 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
 #### Todo:
  - Script for labels --> nucleus center co-ordinates
+ - Quantifying manual annotations in terms of channel-wise decisions
+ - Normalize inputs - improve "hockey stick" training, change architecture to have more intermediate layers at output,
 
 
 #### Pytorch loss implementation for segmentation
@@ -39,4 +41,7 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
 
 #### Experiment notes:
+Trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq92431/AAAlpO_fFAH5eorzfY60q3_Ja?dl=0).
 1. Trained for 15,000 epochs with CrossEntropy loss, commit `5bc7c9`. Missing many dim nuclei, particularly in G channel.
+2. 5,000 epochs with WeightedCrossEntropy [0.2,0.4,0.4]. `a1c01`.
+
