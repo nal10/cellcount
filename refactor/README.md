@@ -27,11 +27,10 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
  - `notebooks/first_run.ipynb`: Unet tested via overfitting on a small patch. 
  - `notebooks/base_unet_datagen.ipynb`: Tests for data generators, logging etc. Contains a snapshot of different stages of development and tests.  
-
+ - `models/unet.py`: Implementation of the original UNet + modified version used for Ai_224_RG dataset. 
 
 #### Todo:
-
- - Conditional checkpointing
- - Add metrics and loss functions
- - Tiling+stitching for prediction
  - Script for labels --> nucleus center co-ordinates
+
+ #### Pytorch loss implementation for segmentation
+  - https://github.com/JunMa11/SegLoss/tree/master/losses_pytorch
