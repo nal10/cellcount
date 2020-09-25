@@ -1,20 +1,10 @@
-# from . import functional_pil as F_pil
-# from . import functional_tensor as F_t
-
-# from torchvision.transforms.transforms import RandomTransforms
-
-# torchvision.transforms.functional.adjust_brightness(img: torch.Tensor, brightness_factor: float) → torch.Tensor
-# torchvision.transforms.functional.adjust_contrast(img: torch.Tensor, contrast_factor: float) → torch.Tensor
-# torchvision.transforms.functional.adjust_saturation(img: torch.Tensor, saturation_factor: float) → torch.Tensor
-# torchvision.transforms.functional.adjust_gamma(img, gamma, gain=1)
-
 import torch
 import numpy as np
 import torchvision.transforms.functional as F
 import random
 
 
-class MyRandomFlip():
+class My_RandomFlip():
     """Vertically flip the Numpy arrays randomly with a given probability. Flip is performed on the last or second-to-last axis.
 
     Args:
@@ -74,8 +64,10 @@ class My_RandomGamma(torch.nn.Module):
             R_im= F.to_pil_image(sample['im'][1,:,:])
             G_im = F.adjust_gamma(G_im,random.choice(self.gamma_list),gain=1)
             R_im = F.adjust_gamma(R_im,random.choice(self.gamma_list),gain=1)
-            G_im = F.pil_to_tensor(G_im)
-            R_im = F.pil_to_tensor(R_im)
+            #G_im = F.pil_to_tensor(G_im) --> This gives UserWarning, see https://github.com/pytorch/vision/issues/2194
+            #R_im = F.pil_to_tensor(R_im)
+            G_im = torch.as_tensor(np.expand_dims(np.array(G_im),axis=0))
+            R_im = torch.as_tensor(np.expand_dims(np.array(R_im),axis=0))
             return {'im':torch.cat([G_im,R_im],0),'lbl':sample['lbl']}
         return sample
 
@@ -114,8 +106,8 @@ class My_RandomContrast(torch.nn.Module):
             R_im= F.to_pil_image(sample['im'][1,:,:])
             G_im = F.adjust_contrast(G_im,contrast_factor=random.choice(self.contrast_factor_list))
             R_im = F.adjust_contrast(R_im,contrast_factor=random.choice(self.contrast_factor_list))
-            G_im = F.pil_to_tensor(G_im)
-            R_im = F.pil_to_tensor(R_im)
+            G_im = torch.as_tensor(np.expand_dims(np.array(G_im),axis=0))
+            R_im = torch.as_tensor(np.expand_dims(np.array(R_im),axis=0))
             return {'im':torch.cat([G_im,R_im],0),'lbl':sample['lbl']}
         return sample
 

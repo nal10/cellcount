@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset,Sampler
 from pathlib import Path
 
-class ai224_RG(Dataset):
+class Ai224_RG_Dataset(Dataset):
     """Dataset for training images
 
     Args:
@@ -82,14 +82,14 @@ class ai224_RG(Dataset):
             idx = idx.tolist()
         im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
         lbl_item = self.lbl[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
-
+        
         #Flipping arrays is much more efficient if directly performed on numpy arrays first
         if self.np_transform is not None:
             im_item,lbl_item = self.np_transform(im_item,lbl_item)
-
+        
         im_item = torch.as_tensor(im_item)
         lbl_item = torch.as_tensor(lbl_item)
-
+        
         if self.torch_transforms is not None:
             return self.torch_transforms({'im':im_item,'lbl':lbl_item})
         return {'im':im_item,'lbl':lbl_item}
@@ -127,7 +127,7 @@ class ai224_RG(Dataset):
             print('name a valid subset')
 
 
-class MyRandomSampler(Sampler):
+class RandomSampler(Sampler):
     r"""Returns indices to randomly specify patches tiles in the dataset.
 
     Arguments:
@@ -161,7 +161,7 @@ class MyRandomSampler(Sampler):
 
 
 #==============================================================================
-class Pred_ai224_RG(Dataset):
+class Pred_Ai224_RG_Dataset(Dataset):
     """Dataset for training images
 
     Args:
