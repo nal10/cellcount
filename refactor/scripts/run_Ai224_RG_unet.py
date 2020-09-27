@@ -13,7 +13,7 @@ from torchvision.transforms import Compose
 from tqdm import tqdm 
 from timebudget import timebudget
 from utils.data import Ai224_RG_Dataset, RandomSampler
-from utils.transforms import My_RandomFlip,My_RandomContrast,My_RandomGamma
+from utils.transforms import My_RandomFlip,My_RandomContrast,My_RandomGamma,My_Normalization
 from models.unet import Ai224_RG_UNet
 
 parser = argparse.ArgumentParser()
@@ -47,17 +47,21 @@ def main(batch_size=12, n_epochs=50, n_batches_per_epoch=10, val_num_samples=50,
     def ckpt_file(epoch): return str(expt_path / f'{epoch}_ckpt.pt')
     
     #Data =============================
-    np_transform = My_RandomFlip(p=0.5)
-    torch_transforms = Compose([My_RandomContrast(p=1.0, contrast_factor_list=[1.5]),
-                                My_RandomGamma(p=1.0, gamma_list=[1.3])])
+    train_np_transform = My_RandomFlip(p=0.5)
+    train_torch_transforms = Compose([My_RandomContrast(p=1.0, contrast_factor_list=[0.75,0.875,1.0,1.125,1.25]),
+                                My_RandomGamma(p=1.0, gamma_list=[0.8,0.9,1.0,1.1,1.2]),
+                                My_Normalization(scale=255.)])
+                                
+    val_torch_transforms = Compose([My_Normalization(scale=255.)])
+
 
     train_dataset = Ai224_RG_Dataset(pad=train_pad,
                                      patch_size=patch_size,
                                      subset='train',
                                      im_path=im_path,
                                      lbl_path=lbl_path,
-                                     np_transform=np_transform,
-                                     torch_transforms=torch_transforms)
+                                     np_transform=train_np_transform,
+                                     torch_transforms=train_torch_transforms)
 
     train_sampler = RandomSampler(n_tiles=train_dataset.n_tiles,
                                   min_x=0, min_y=0,
@@ -75,7 +79,7 @@ def main(batch_size=12, n_epochs=50, n_batches_per_epoch=10, val_num_samples=50,
                                    im_path=im_path,
                                    lbl_path=lbl_path,
                                    np_transform=None,
-                                   torch_transforms=None)
+                                   torch_transforms=val_torch_transforms)
 
     val_sampler = RandomSampler(n_tiles=val_dataset.n_tiles,
                                 min_x=0,

@@ -37,12 +37,8 @@ class My_RandomGamma(torch.nn.Module):
     """Randomly adjust gamma of the different channels in sample['im'] independently. sample['lbl'] is unchanged.
 
     Args:
-        p (float): probability of the image being flipped. Default value is 0.5
-        gamma (float):
-    
-    Todo:
-        gamma_list: function will randomly choose gamma from a list of pre-specified values.
-        Ensure independence of channels.
+        p (float): probability of the image being flipped.
+        gamma_list (List): 
     """
 
     def __init__(self, p=0.5, gamma_list=[0.8,0.9,1.0,1.1,1.2]):
@@ -80,11 +76,7 @@ class My_RandomContrast(torch.nn.Module):
 
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
-        contrast_factor (float):  Non-negative float. 0 -> solid gray image, 1 -> original image, 2 increases contrast by factor of 2
-    
-    Todo:
-        contrast_list: function will randomly choose contrast_factor from a list of pre-specified values.
-        Ensure independence of channels.
+        contrast_factor_list (List):  List of positive floats. 0 -> solid gray image, 1 -> original image, 2 increases contrast by factor of 2
     """
 
     def __init__(self, p=0.5, contrast_factor_list=[0.5,0.75,1.0,1.25,1.50]):
@@ -109,6 +101,33 @@ class My_RandomContrast(torch.nn.Module):
             G_im = torch.as_tensor(np.expand_dims(np.array(G_im),axis=0))
             R_im = torch.as_tensor(np.expand_dims(np.array(R_im),axis=0))
             return {'im':torch.cat([G_im,R_im],0),'lbl':sample['lbl']}
+        return sample
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class My_Normalization(torch.nn.Module):
+    """Scale images after all transformations. sample['lbl'] is unchanged.
+
+    Args:
+        scale (float): Constant to scale the images with. 
+    """
+
+    def __init__(self, scale=1.0):
+        super().__init__()
+        self.scale = scale
+        return
+
+    def forward(self, sample):
+        """
+        Args:
+            sample (dict): 'im' and 'lbl' are keys with corresponding values
+
+        Returns:
+            sample: Randomly saturated sample['im']. 
+        """
+        sample = {'im': sample['im'].double()/self.scale, 'lbl': sample['lbl']}
         return sample
 
     def __repr__(self):
