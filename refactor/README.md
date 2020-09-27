@@ -42,6 +42,7 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
 #### Experiment notes:
 Trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq92431/AAAlpO_fFAH5eorzfY60q3_Ja?dl=0).
-1. Trained for 15,000 epochs with CrossEntropy loss, commit `5bc7c9`. Missing many dim nuclei, particularly in G channel.
-2. 5,000 epochs with WeightedCrossEntropy [0.2,0.4,0.4]. `a1c01`.
+1. commit `5bc7c9`: Trained for 15,000 epochs with CrossEntropy loss. Missing many dim nuclei, particularly in G channel.
+2. commit `a1c01`: 5,000 epochs with WeightedCrossEntropy [0.2,0.4,0.4].
+3. commit `5c406`: Input is scaled, and augmentation function input bug fixed. 10,000 epochs.
 
