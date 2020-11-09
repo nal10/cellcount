@@ -97,7 +97,7 @@ def main(batch_size=12, n_epochs=50, n_batches_per_epoch=10, val_num_samples=50,
     #Model ============================
     model = Ai224_RG_UNet()
     optimizer = torch.optim.Adam(model.parameters())
-    ce = torch.nn.CrossEntropyLoss(weight=torch.tensor([0.2,0.4,0.4]))
+    ce = torch.nn.CrossEntropyLoss(weight=torch.tensor([0.4,0.4,0.4]))
 
     #Helpers ==========================
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
