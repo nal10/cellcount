@@ -45,4 +45,6 @@ Trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq924
 1. commit `5bc7c9`: Trained for 15,000 epochs with CrossEntropy loss. Missing many dim nuclei, particularly in G channel.
 2. commit `a1c01`: 5,000 epochs with WeightedCrossEntropy [0.2,0.4,0.4].
 3. commit `5c406`: Input is scaled, and augmentation function input bug fixed. 10,000 epochs.
+4. commit `a7749`: Input is scaled, equal weights used for cross-entropy loss. 10,000 epoch experiment. 
+5. commit `?`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment. 
 
