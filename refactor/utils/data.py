@@ -162,19 +162,22 @@ class RandomSampler(Sampler):
 
 #==============================================================================
 class Pred_Ai224_RG_Dataset(Dataset):
-    """Dataset for training images
+    """Dataset with only images, used for prediction with the mofdel
 
     Args:
-        im_path: directory path with image .tif files 
         patch_size: patch_size of returned items
-        output_size: output size of the network.
+        output_size: output size of the network
+        im_path: directory path with image .tif files 
+        fname: name of image without channel extension (see default argument)
+        scale: pixel values are divided by this number
     """
 
     def __init__(self,
                  patch_size = 260,
                  output_size = 172,
                  im_path='/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/',
-                 fname='527100_1027993339_0065_tile_9_8_'):
+                 fname='527100_1027993339_0065_tile_9_8_',
+                 scale=1.0):
         
         super().__init__()
         G_IM_file=im_path+fname+'green.tif'
@@ -210,6 +213,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
         self.tile_shape_padded = np.array(self.IM.shape[-2:])
         self.patch_size = patch_size
         self.output_size = output_size
+        self.scale=float(scale)
 
         self.pad_xi = pad_xi
         self.pad_yi = pad_yi
@@ -218,6 +222,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
 
         self.n_x_patches = n_x_patches
         self.n_y_patches = n_y_patches
+        
         return
 
     def __len__(self):
@@ -226,7 +231,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]
+        im_item = self.IM[idx[0],:,idx[1]:idx[1]+self.patch_size,idx[2]:idx[2]+self.patch_size]/self.scale
         im_item = torch.as_tensor(im_item)
         idx = torch.as_tensor(idx)
         return {'im':im_item, 'idx':idx[-2:]}
