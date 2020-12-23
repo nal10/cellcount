@@ -32,8 +32,15 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 
 #### Todo:
  - Script for labels --> nucleus center co-ordinates
- - Quantifying manual annotations in terms of channel-wise decisions
- - Normalize inputs - improve "hockey stick" training, change architecture to have more intermediate layers at output,
+    - Find connected components of thresholded Unet output
+    - Center of mass of connected components are nucleus co-ordinates
+    - Predictions within `1 x typical cell radius` are true positives, and otherwise are false positives. False negatives are defined as manual annotations without a corresponding true positive prediction. 
+    - Precision, Recall, and F1-score can be defined per image and per channel. 
+
+How many false positives are predicted as cells in both channels
+How many false positives are annotated as cells in one channel by human
+How many false negative in one channel are annotated as cells in the other channel
+
 
 
 #### Pytorch loss implementation for segmentation
@@ -46,5 +53,5 @@ Trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq924
 2. commit `a1c01`: 5,000 epochs with WeightedCrossEntropy [0.2,0.4,0.4].
 3. commit `5c406`: Input is scaled, and augmentation function input bug fixed. 10,000 epochs.
 4. commit `a7749`: Input is scaled, equal weights used for cross-entropy loss. 10,000 epoch experiment. 
-5. commit `?`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment. 
+5. commit `3e952`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment. 
 
