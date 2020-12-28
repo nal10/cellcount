@@ -31,9 +31,6 @@ if show_plots
     colormap('gray')
     plot(y,x,'sr','MarkerSize',20);
     caxis([0 0.3])
-    %Debug limits
-    %xlim([1617,1838])
-    %ylim([416,638])
     drawnow
 end
 

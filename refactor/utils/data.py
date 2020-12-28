@@ -331,7 +331,8 @@ class Pred_Ai224_RG_Zarr(Dataset):
         
         super().__init__()
         self.IM = zarr.open(im_path+fname)
-        self.IM = self.IM[15000:20000,10000:15000,:]
+        #[15000:20000,10000:15000,:]
+        self.IM = self.IM
         IM_shape = self.IM.shape[:2]
         
         n_x_patches = np.ceil(IM_shape[0]/output_size).astype(int)
@@ -380,10 +381,11 @@ class Pred_Ai224_RG_Zarr(Dataset):
 
         #zarr files have uint16 data. only training and augmentation requires uint8.
         im_item = im_item.astype(float)*(2**8)/(2**16-1)/self.scale
-
+        
         #zarr file shape (x,y,[red,green]), with 1:green and 0:red. Model requires ([green,red],x,y)
-        im_item = np.swapaxes(np.flip(im_item,axis=2),axis1=0,axis2=2).copy()
-
+        #copy is required because the numpy array view has negative steps
+        im_item = np.moveaxis(np.flip(im_item,axis=2),source=2,destination=0).copy()
+        
         return {'im':torch.as_tensor(im_item), 'idx':torch.as_tensor([x,y])}
 
 

@@ -15,19 +15,19 @@ from random import shuffle
 import numpy as np
 import scipy.io as sio
 import tensorflow as tf
-from keras.callbacks import (Callback, CSVLogger,ModelCheckpoint,TensorBoard)
-from keras.layers import (Activation, BatchNormalization,
+from tensorflow.keras.callbacks import (Callback, CSVLogger,ModelCheckpoint,TensorBoard)
+from tensorflow.keras.layers import (Activation, BatchNormalization,
                                             Concatenate, Conv2D, Cropping2D,
                                             Dense, Dropout, Input,
                                             MaxPooling2D, UpSampling2D)
-from keras.models import Model
-from keras.optimizers import Adam
-from nuclei_count_data import DataClass, DataGenerator, IOpaths, validationData, trainingData
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from nuclei_count_data import DataClass, IOpaths, validationData, trainingData, random_trainbatch
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--run_mode",          default='train',       type=str,    help="Options; new, continue, infer")
 
-parser.add_argument("--max_fg_frac",       default=0.8,           type=int,    help="Fraction of patches with foreground pixels in them")
+parser.add_argument("--min_fg_frac",       default=0.8,           type=int,    help="Fraction of patches with foreground pixels in them")
 parser.add_argument("--batch_size",        default=4,             type=int,    help="Batch size")
 parser.add_argument("--n_steps_per_epoch", default=2000,          type=int,    help="Gradient steps per epoch")
 parser.add_argument("--n_epoch",           default=1000,          type=int,    help="Number of epochs to train")
@@ -38,12 +38,12 @@ parser.add_argument("--model_id",          default='v1',          type=str,    h
 parser.add_argument("--exp_name",          default='nuclei_count',type=str,    help="Experiment name")
 
 
-def main(run_mode='train',max_fg_frac=0.8,
+def main(run_mode='train',min_fg_frac=0.8,
          batch_size=4, n_steps_per_epoch=2000, n_epoch=1000, warm_start=0,
          run_iter=0, exp_name='nuclei_count', model_id='v1'):
 
     fileid = model_id + \
-        '_fg_' + str(max_fg_frac) + \
+        '_fg_' + str(min_fg_frac) + \
         '_bs_' + str(batch_size) + \
         '_se_' + str(n_steps_per_epoch) + \
         '_ne_' + str(n_epoch) + \
@@ -78,8 +78,13 @@ def main(run_mode='train',max_fg_frac=0.8,
                     '370548-0034_3']
 
     #Selected based on analysis of false positives:
-    trainmore_fileid = ['370607-0124_3', '370607-0124_3', '370548-0034_1', '352293-0020_1',
-                        '370607-0124_3', '370607-0124_3', '370548-0034_1']
+    trainmore_fileid = ['370607-0124_3', 
+                        '370607-0124_3', 
+                        '370607-0124_3',
+                        '370607-0124_3', 
+                        '370548-0034_1',
+                        '370548-0034_1', 
+                        '352293-0020_1',]
 
     train_fileid = train_fileid + trainmore_fileid
     
@@ -89,16 +94,21 @@ def main(run_mode='train',max_fg_frac=0.8,
     val_fileid = ['371808_60',   '387573_103', '324471_53', '333241_113',
                   '370607-0124', '370548-0034_4']
 
-    valdata_fixed = validationData(file_ids=val_fileid, dir_pth=dir_pth, 
-                                   max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
+    valdata_fixed = validationData(file_ids=val_fileid,
+                                   dir_pth=dir_pth,
+                                   min_fg_frac=min_fg_frac,
+                                   patch_size=patch_size,
+                                   n_patches_perfile=20)
 
     #Training Loop-------------------------------------------------------------------
     if warm_start==1:
         wt_file = dir_pth['result'] + 'warm_start_BN_42k.h5'
         print('Loading weights from ' + wt_file)
         unet.load_weights(wt_file)
-        traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
-                                   max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
+        traindata_fixed = trainingData(dataObj_list=training_dataObj_list,
+                                       min_fg_frac=min_fg_frac,
+                                       patch_size=patch_size,
+                                       n_patches_perfile=20)
         unet.fit(traindata_fixed[0]['input_im'],traindata_fixed[1]['output_im'],
                         validation_data=valdata_fixed,
                         initial_epoch=0, epochs=1, verbose=1)
@@ -106,21 +116,29 @@ def main(run_mode='train',max_fg_frac=0.8,
         
 
     start_time = timeit.default_timer()
-    for e in range(n_epoch):
-        traindata_fixed = trainingData(dataObj_list=training_dataObj_list, dir_pth=dir_pth, 
-                                   max_fg_frac=max_fg_frac, patch_size=patch_size, n_patches_perfile=20)
+    n_batches=100
+    for e in range(n_batches):
+        print(e)
+        # traindata_fixed = trainingData(dataObj_list=training_dataObj_list,
+        #                                min_fg_frac=min_fg_frac,
+        #                                patch_size=patch_size,
+        #                                n_patches_perfile=20)
 
         #Rotate randomly for whole epoch data:
+        dat = random_trainbatch(dataObj_list=training_dataObj_list, min_fg_frac=0.5, patch_size=128, batch_size=10)
         rand_k=np.random.choice([0,1,2,3],size=1)[0]
-        traindata_fixed[0]['input_im'] = np.rot90(traindata_fixed[0]['input_im'],k=rand_k,axes=(1,2))
-        traindata_fixed[1]['output_im'] = np.rot90(traindata_fixed[1]['output_im'],k=rand_k,axes=(1,2))
+        dat[0]['input_im'] = np.rot90(dat[0]['input_im'],k=rand_k,axes=(1,2))
+        dat[1]['output_im'] = np.rot90(dat[1]['output_im'],k=rand_k,axes=(1,2))
         
         #Fit model here:
-        _e=e+1
-        unet.fit(traindata_fixed[0]['input_im'],traindata_fixed[1]['output_im'],
-                        validation_data=valdata_fixed,
-                        initial_epoch=e, epochs=_e, verbose=1,
-                        callbacks=[history_cb, csvlog])
+        # _e=e+1
+        # unet.fit(dat[0]['input_im'],dat[1]['output_im'],
+        #                 validation_data=valdata_fixed,
+        #                 initial_epoch=e, epochs=_e, verbose=1,
+        #                 callbacks=[history_cb, csvlog])
+
+        unet.train_on_batch(dat[0]['input_im'],dat[1]['output_im'])
+                        
     elapsed = timeit.default_timer() - start_time
     print('Time elapsed: '+str(elapsed))
     unet.save_weights(dir_pth['result']+fileid+'.h5')
@@ -183,8 +201,8 @@ def loss_fcn_wbce(y_true, y_pred):
     lbl  = y_true
     pred = y_pred
     weights = tf.stop_gradient(1. - tf.reduce_mean(lbl, axis=[0, 1, 2]))
-    ce = - tf.multiply(lbl, tf.log(pred + tf.keras.backend.epsilon())) - \
-           tf.multiply((1. - lbl), tf.log(1. - pred + tf.keras.backend.epsilon()))
+    ce = - tf.multiply(lbl, tf.math.log(pred + tf.keras.backend.epsilon())) - \
+           tf.multiply((1. - lbl), tf.math.log(1. - pred + tf.keras.backend.epsilon()))
     weighted_ce = tf.multiply(weights, ce)
     return tf.reduce_mean(weighted_ce, axis=None)
         

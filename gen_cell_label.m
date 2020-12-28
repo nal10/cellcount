@@ -1,5 +1,5 @@
-mat_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_02_Mat_v1/';
-labels_dir = '/home/rohan/Dropbox/AllenInstitute/CellCount/dat/proc/Dataset_02_Labels_v1/';
+mat_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/raw/Unet_tiles_082020/';
+labels_dir = '/Users/fruity/Dropbox/AllenInstitute/CellCount/dat/proc/Unet_tiles_082020/';
 fnames = dir([mat_dir,'*.mat']);fnames = {fnames.name}';
 for f=1:numel(fnames)
     F = load([mat_dir,fnames{f}]);
@@ -7,5 +7,3 @@ for f=1:numel(fnames)
     labelfile = strrep([labels_dir,fnames{f}],'.mat','_labels.tif');
     imwrite(Labels,labelfile)
 end
-
-

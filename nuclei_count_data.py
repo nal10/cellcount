@@ -57,21 +57,22 @@ class DataClass(object):
             self.fg_xy = np.reshape(self.fg_xy,newshape=(int(self.fg_xy.size/2),2))
         else:
             self.fg_xy = np.empty(shape=(0,2),dtype=int)
-        
-        print(self.fg_xy.shape)
         return
 
     def __str__(self):
         return "File id : {}".format(self.id)
 
     def _shuffle_fg_xy(self):
-        #Used to shuffle order of foreground positions. This ensures that different epochs/batches are not identical.
-        #np.random.shuffles the array in-place along the first axis of the multi-dimensional array.
+        '''
+        Shuffles fg_xy order. Done to ensure batches are not identical.
+        np.random.shuffles(): performs in-place shuffle along the first axis. Empties are handled as expected.
+        s'''
         np.random.shuffle(self.fg_xy) 
         return
 
     def _random_fg_xy(self):
-        '''Returns a single random foreground patch midpoint xy. Empty if no fg label.
+        '''Returns 
+        a single random foreground patch midpoint xy. Empty if no fg label.
         '''
         if np.size(self.fg_xy)>0:
             i = np.random.randint(0,np.shape(self.fg_xy)[0])
@@ -89,8 +90,46 @@ class DataClass(object):
         return xy
 
 
+def random_trainbatch(dataObj_list=[], min_fg_frac=0.5, patch_size=128, batch_size=10):
+    '''
+    Samples files uniformly. 
+    `min_fg_frac` only applies to files with atleast 1 fg pixel
+    '''
+    pdb.set_trace()
+    fid = np.random.randint(low=0, high=len(
+        dataObj_list), size=(batch_size,), dtype=int)
+    im = np.zeros((batch_size, patch_size, patch_size))
+    lbl = np.zeros((batch_size, patch_size, patch_size))
+    batch_ind = 0
+    for f in fid:
+        xy = None
+        r = np.random.rand()
+        if r < min_fg_frac:  # Choose one foreground pixel (may be empty)
+            xy = dataObj_list[f]._random_fg_xy()
+        if xy is None:
+            xy = dataObj_list[f]._random_xy()
+        xy = np.squeeze(xy)
+        shift_xy = np.random.randint(low=-dataObj_list[f].pad,
+                                     high=dataObj_list[f].pad,
+                                     size=xy.shape)
+        xy = xy+shift_xy
+        half_patch = int(patch_size/2)
+        pdb.set_trace()
+        im_lbl = dataObj_list[f].im_lbl[xy[0]-half_patch:xy[0]+half_patch,
+                                        xy[1]-half_patch:xy[1]+half_patch,
+                                        :]
+        im[batch_ind, :, :] = im_lbl[:, :, 0]
+        lbl[batch_ind, :, :] = im_lbl[:, :, 1]
+        batch_ind = batch_ind+1
+
+    im = np.expand_dims(im, -1)
+    cat_lbl = to_categorical(np.expand_dims(lbl, -1), num_classes=3)
+    return ({'input_im': im}, {'output_im': cat_lbl})
+    
+
 def trainingData(dataObj_list, min_fg_frac=0.8, patch_size=128, n_patches_perfile=20):
     """Calculate image and categorical label patches using DataClass objects. 
+    Batches necessarily have patches from each file, evenly sampled from the file.  
     
     Arguments:
         dataObj_list: a list of DataClass objects 
@@ -98,13 +137,14 @@ def trainingData(dataObj_list, min_fg_frac=0.8, patch_size=128, n_patches_perfil
     Keyword Arguments:
         min_fg_frac {float} -- Minimum fraction of patches per batch that have at least one foreground pixels (default: {0.8})
         patch_size {int} -- This is matched to the network input.
-        n_patches_perfile {int} -- Number of 
+        n_patches_perfile {int} -- number of patches per file
     
     Returns:
-        Tuple of input and output dictionaries. The input and output dicts contsist of 4d arrays (x,y,n_patches,channels)
+        Tuple of input and output dictionaries. 
+        The input and output dicts contsist of 4d arrays (x,y,n_patches,channels)
     """    
     total_patch_count=0
-    im = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
+    im =  np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
     lbl = np.zeros((len(dataObj_list)*n_patches_perfile,patch_size,patch_size))
     for d in range(len(dataObj_list)):
         count_thisfile=0
@@ -191,8 +231,10 @@ class DataGenerator(Sequence):
                 self.im[count,:,:] = im_lbl[:,:,0]
                 self.lbl[count,:,:] = im_lbl[:,:,1]
                 count = count+1
-
-        return {'input_im':np.expand_dims(self.im,-1)},{'output_im': to_categorical(np.expand_dims(self.lbl,-1),num_classes=3)}
+        
+        im = np.expand_dims(self.im,-1)
+        cat_lbl = to_categorical(np.expand_dims(self.lbl,-1),num_classes=3)
+        return ({'input_im': im}, {'output_im': cat_lbl})
         
     def on_epoch_end(self):
         return

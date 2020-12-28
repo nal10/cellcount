@@ -55,3 +55,8 @@ Trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq924
 4. commit `a7749`: Input is scaled, equal weights used for cross-entropy loss. 10,000 epoch experiment. 
 5. commit `3e952`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment. 
 
+#### Prediction on full brain images
+ - Each slice takes ~`500 s` just for I/O from .zarr format. 
+ - ~`150` slices per brain will require ~`1250 min` for I/O
+ - Passing through GPU + morphological ops to get co-ordinates is negligible in comparison
+

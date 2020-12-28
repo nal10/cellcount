@@ -18,16 +18,15 @@ def set_paths():
     if '/Users/fruity' in curr_path:
         base_path = '/Users/fruity/Dropbox/AllenInstitute/CellCount/'
     elif '/home/rohan' in curr_path:
-        base_path = '/home/rohan/Dropbox/AllenInstitute/CellCount/'
-    elif '/home/shenqin' in curr_path:
-        base_path = '/home/shenqin/Local/CellCount/'
-    else: #beaker relative paths
-        print('File paths not set!')
+        base_path = '/home/rohan/Local/'
 
-    rel_im_path = 'dat/raw/Dataset_03_Images_clean/'
-    rel_lbl_path = 'dat/proc/Dataset_03_Labels_v1/'
-    rel_result_path = 'dat/results/'
-
+    #rel_im_path = 'dat/raw/Dataset_03_Images_clean/'
+    #rel_lbl_path = 'dat/proc/Dataset_03_Labels_v1/'
+    #rel_result_path = 'dat/results/'
+    rel_im_path = '5Brain/'
+    rel_lbl_path = '5Brain/'
+    rel_result_path = '5Brain_proc_v2/'
+    
     assert (os.path.isdir(base_path) and
            os.path.isdir(base_path + rel_im_path) and
            os.path.isdir(base_path + rel_lbl_path) and

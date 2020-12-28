@@ -55,7 +55,14 @@ class dataset(object):
         #This loads label and image data into a list
         for f in self.file_id:
             self.im_buffer.append(skio.imread(self.im_path + f + '.tif')/255.)#<---- Choosing 1st out of 3 exact copies in channels
-            self.lbl_buffer.append(skio.imread(self.lbl_path + f + '_labels.tif')/1.)#Division by 1. forces float type.
+            
+            try:
+                L = skio.imread(self.lbl_path + f + '_labels.tif')/1.#Division by 1. forces float type.    
+            except:
+                print(self.lbl_path + f + '_labels.tif'+'Not found. Label is a placeholder.')
+                L = np.zeros_like(self.im_buffer[-1])
+            self.lbl_buffer.append(L)
+                      
         return
 
     def get_patches(self):
