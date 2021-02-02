@@ -20,7 +20,7 @@ import glob
 
 
 for i in os.listdir(sys.argv[1]):
-    if i.endswith('.xml'):
+    if i.endswith('Cameron.xml'):
         filename = glob.glob(sys.argv[1]+'/'+i)[0]
         print(filename)
         root = ET.parse(filename).getroot()
