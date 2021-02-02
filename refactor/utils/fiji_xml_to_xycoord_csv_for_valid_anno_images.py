@@ -51,5 +51,5 @@ for i in os.listdir(sys.argv[1]):
         red_coord = pd.concat([df_2_x, df_2_y], axis=1)
 
         #save to csv
-        green_coord.to_csv(filename.replace("\\","/").rsplit('/',1)[0]+'/'+(root[0][0].text).split('.')[0]+'_green.csv')
-        red_coord.to_csv(filename.replace("\\","/").rsplit('/',1)[0]+'/'+(root[0][0].text).split('.')[0]+'_red.csv')
+        green_coord.to_csv(filename.replace("\\","/").rsplit('/',1)[0]+'/'+(root[0][0].text).split('.')[0]+'_Cameron_green.csv')
+        red_coord.to_csv(filename.replace("\\","/").rsplit('/',1)[0]+'/'+(root[0][0].text).split('.')[0]+'_Cameron_red.csv')
