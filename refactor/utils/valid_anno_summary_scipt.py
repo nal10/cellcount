@@ -71,8 +71,8 @@ for e in glob.glob(sys.argv[1]+'*?_?.xml'):
 
         #save to csv
         if fname != cam_file:
-            green_coord_orig.to_csv(os.path.dirname(e)+'/'+(root[0][0].text).split('.')[0]+'_green.csv', index=False)
-            red_coord_orig.to_csv(os.path.dirname(e)+'/'+(root[0][0].text).split('.')[0]+'_red.csv', index=False)
+            #green_coord_orig.to_csv(os.path.dirname(e)+'/'+(root[0][0].text).split('.')[0]+'_green.csv', index=False)
+            #red_coord_orig.to_csv(os.path.dirname(e)+'/'+(root[0][0].text).split('.')[0]+'_red.csv', index=False)
             orig_green_tuples = [tuple(x) for x in green_coord_orig.to_numpy()]
             orig_red_tuples = [tuple(x) for x in red_coord_orig.to_numpy()]
 
