@@ -7,7 +7,7 @@ import pandas as pd
 import glob
 import csv
 
-for e in glob.glob(sys.argv[1]+'*_.xml'):
+for e in glob.glob(sys.argv[1]+'*_*_*[0-9].xml'):
     print(e)
     tiles=[]
     prefix = os.path.basename(e).split('.')[0]
