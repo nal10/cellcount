@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import xml.etree.ElementTree as ET
@@ -5,16 +7,16 @@ import pandas as pd
 import glob
 import csv
 
-for e in glob.glob(sys.argv[1]+'*?_?.xml'):
+for e in glob.glob(sys.argv[1]+'*_.xml'):
+    print(e)
     tiles=[]
     prefix = os.path.basename(e).split('.')[0]
     cam_file = str(os.path.dirname(e)+'/'+prefix+'_Cameron.xml')
     tiles.append(e)
     tiles.append(cam_file)
     for fname in tiles:
-        print(fname)
+        ##print(fname)
         root = ET.parse(fname).getroot()
-
 
         if fname != cam_file:
             marker_num_1=0
@@ -48,7 +50,7 @@ for e in glob.glob(sys.argv[1]+'*?_?.xml'):
                     marker_num_2 += 1
                 else:
                     inc+=1
-        
+
         #create df from xml
         if fname != cam_file:
             df_1_x = pd.concat([pd.DataFrame([root[1][1][i][0].text], columns=['x']) for i in range(inc,marker_num_1+inc)], ignore_index=True)
