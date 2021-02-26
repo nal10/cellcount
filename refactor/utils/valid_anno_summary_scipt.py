@@ -7,6 +7,7 @@ import pandas as pd
 import glob
 import csv
 
+#testing github
 for e in glob.glob(sys.argv[1]+'*_*_*[0-9].xml'):
     print(e)
     tiles=[]
