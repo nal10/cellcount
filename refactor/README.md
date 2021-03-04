@@ -22,25 +22,18 @@ Matlab-based workflow to convert obtain pixel-wise labels from cell center annot
 2. `pwgt/FM_script.m`: Generates intermediate .mat files with output from a fast marching based wave propagation algorithm. .mat files contain maps for  visited/not-visited points `KT`, arrival time `T`, distance `D`, simple/non-simple point class `S`.
 3. `pwgt/lbl_from_FM.m`: Uses intermediate .mat files to generate individual label maps.
 
+#### Image format processing
+ - `.jp2, uint16`: Original data format is `uint16`. Use `utils.data.convert_u16_to_u8` to convert to uint8 input for the unet.
+ - `.jp2, uint16 --> .zarr, uint16`: Use `utils.data.jp2_to_zarr`
+ - !!! To do --> 
+ - `.zarr, uint16 --> .tif, uint8` global zarr to tif for Cameroon (Use `utils.data.convert_u16_to_u8` and then write `uint8` .tif)
+
 
 #### Models and tests:
 
  - `notebooks/first_run.ipynb`: Unet tested via overfitting on a small patch. 
  - `notebooks/base_unet_datagen.ipynb`: Tests for data generators, logging etc. Contains a snapshot of different stages of development and tests.  
  - `models/unet.py`: Implementation of the original UNet + modified version used for Ai_224_RG dataset. 
-
-
-#### Todo:
- - Script for labels --> nucleus center co-ordinates
-    - Find connected components of thresholded Unet output
-    - Center of mass of connected components are nucleus co-ordinates
-    - Predictions within `1 x typical cell radius` are true positives, and otherwise are false positives. False negatives are defined as manual annotations without a corresponding true positive prediction. 
-    - Precision, Recall, and F1-score can be defined per image and per channel. 
-
-How many false positives are predicted as cells in both channels
-How many false positives are annotated as cells in one channel by human
-How many false negative in one channel are annotated as cells in the other channel
-
 
 
 #### Pytorch loss implementation for segmentation

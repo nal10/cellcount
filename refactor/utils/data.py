@@ -17,6 +17,25 @@ def convert_u16_to_u8(im_u16):
     return np.uint8(np.round(im_u16.astype(float)*(2**8)/(2**16-1)))
 
 
+def jp2_to_zarr(file_list, destination:str,overwrite=False):
+    """
+    """
+    #NOT TESTED
+    import glymur
+    glymur.set_option('lib.num_threads', 2)
+
+    for file in file_list:
+        if file.endswith(".jp2") and overwrite:
+            zarr_file = file.split('.')[0] + '.zarr'
+            jp2 = glymur.Jp2k(file)
+            zarr.save(destination+zarr_file, jp2[:])
+            print(f'Wrote {destination+zarr_file}')
+        elif overwrite:
+            print(f'====> Ignored: {file}')
+    return
+
+
+
 def nonzero_row_col(zarr_file,verbose=True):
     """Output the co-ordinates where the first non-zero rows and columns occur in a given zarr array. 
     Column- and row-wise sum calculations take ~50s for a 30000 x 40000 x 3 zarr image.
@@ -421,3 +440,31 @@ class Pred_Sampler_Zarr(Sampler):
 
     def __len__(self):
         return self.n_x_patches*self.n_y_patches
+
+
+def replace_duplicates(points, distance_thr):
+    """Points that are within threshold distance are considered as duplicates. 
+    The same cell can be partially segmented and detected > 1 sections by the U-net based method. 
+    Duplicates replaced with the centroid of duplicates. 
+
+    Args:
+        points: numpy array of shape (n x 3) or (n x 2)
+
+    Returns:
+        points: after duplicates are replaced by the corresponding centroid
+    """
+
+    return points
+    # import matplotlib.pyplot as plt
+    # >>> import numpy as np
+    # >>> 
+    # >>> np.random.seed(21701)
+    # >>> points = np.random.random((20, 2))
+    # >>> plt.figure(figsize=(6, 6))
+    # >>> plt.plot(points[:, 0], points[:, 1], "xk", markersize=14)
+    # >>> kd_tree = cKDTree(points)
+    # >>> pairs = kd_tree.query_pairs(r=0.2)
+    # >>> for (i, j) in pairs:
+    # ...     plt.plot([points[i, 0], points[j, 0]],
+    # ...             [points[i, 1], points[j, 1]], "-r")
+    # >>> plt.show()

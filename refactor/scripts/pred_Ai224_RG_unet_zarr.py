@@ -7,7 +7,8 @@
 # 3. Load zarr dataset for prediction (patch generation is handled by this class)
 # 4. Perform prediction
 # 5. Perform checks on subtiles
-# 5. Write results to csv
+# 6. Write results to csv
+# 7. Postprocess csv to remove potential duplicates along section borders <-- To do
 
 import sys
 from pathlib import Path
@@ -32,8 +33,8 @@ tensor_ = lambda x: torch.as_tensor(x).to(dtype=torch.float32).to(device)
 tonumpy = lambda x: x.cpu().detach().numpy()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--im_path",   default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/547656/',     type=str)
-parser.add_argument("--csv_path",  default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/547656/csv/', type=str)
+parser.add_argument("--im_path",   default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/549594/',     type=str)
+parser.add_argument("--csv_path",  default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/549594/csv/', type=str)
 
 def main(im_path=None,csv_path=None):
 
