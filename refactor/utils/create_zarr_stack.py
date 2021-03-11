@@ -2,7 +2,6 @@ import dask.array as da
 from dask import delayed
 from glob import glob
 import pandas as pd
-##testing
 
 def create_downsampled_stack(img_id,img_subdir,save_dir,channel,slide_step=1,xy_subsample=2, x_pad=5000, y_pad=5000):
     '''Downsample image slides and segmented masks (used for visualization and QC). 
