@@ -40,11 +40,11 @@ for i in os.listdir(sys.argv[1]):
                 pass
 
         #create df from xml
-        df_1_x = pd.concat([pd.DataFrame([root[1][1][i][0].text], columns=['x']) for i in range(2,marker_num_1+1)], ignore_index=True)
-        df_1_y = pd.concat([pd.DataFrame([root[1][1][i][1].text], columns=['y']) for i in range(2,marker_num_1+1)], ignore_index=True)
+        df_1_x = pd.concat([pd.DataFrame([root[1][1][i][0].text], columns=['x']) for i in range(2,marker_num_1+2)], ignore_index=True)
+        df_1_y = pd.concat([pd.DataFrame([root[1][1][i][1].text], columns=['y']) for i in range(2,marker_num_1+2)], ignore_index=True)
 
-        df_2_x = pd.concat([pd.DataFrame([root[1][2][i][0].text], columns=['x']) for i in range(2,marker_num_2+1)], ignore_index=True)
-        df_2_y = pd.concat([pd.DataFrame([root[1][2][i][1].text], columns=['y']) for i in range(2,marker_num_2+1)], ignore_index=True)
+        df_2_x = pd.concat([pd.DataFrame([root[1][2][i][0].text], columns=['x']) for i in range(2,marker_num_2+2)], ignore_index=True)
+        df_2_y = pd.concat([pd.DataFrame([root[1][2][i][1].text], columns=['y']) for i in range(2,marker_num_2+2)], ignore_index=True)
 
         #merge x and y into one df
         green_coord = pd.concat([df_1_x, df_1_y], axis=1)
