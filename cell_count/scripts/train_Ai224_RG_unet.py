@@ -1,20 +1,16 @@
 import sys
 from pathlib import Path
-#Add path to parent folder for imports
-sys.path.append(str(Path.cwd().parent))
+
 
 import argparse
 import csv
-import torch 
+import torch
 import numpy as np
-torch.manual_seed(0)
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
-from tqdm import tqdm 
-from timebudget import timebudget
-from utils.data import Ai224_RG_Dataset, RandomSampler
-from utils.transforms import My_RandomFlip,My_RandomContrast,My_RandomGamma,My_Normalization
-from models.unet import Ai224_RG_UNet
+from cell_count.utils.data import Ai224_RG_Dataset, RandomSampler
+from cell_count.utils.transforms import My_RandomFlip,My_RandomContrast,My_RandomGamma,My_Normalization
+from cell_count.models.unet import Ai224_RG_UNet
 
 parser = argparse.ArgumentParser()
 

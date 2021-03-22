@@ -1,30 +1,20 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 #### Prediction with trained model
-# 1. Loads a model
-# 2. Load weights from a checkpoint
-# 3. Load zarr dataset for prediction (patch generation is handled by this class)
-# 4. Perform prediction
-# 5. Perform checks on subtiles
-# 6. Write results to csv
-# 7. Postprocess csv to remove potential duplicates along section borders <-- To do
+# 1. Loads model, and weights
+# 2. Load zarr dataset for prediction (patch generation is handled by this class)
+# 3. Predict, perform checks on subtiles, and write results to .csv
 
-import sys
 from pathlib import Path
-#Add path to parent folder for imports
-sys.path.append(str(Path.cwd().parent))
 
 import argparse
 import glob
 import numpy as np
 import pandas as pd
 import torch
-from models.unet import Ai224_RG_UNet
+from cell_count.models.unet import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils.analysis import pred_to_xy
-from utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
+from cell_count.utils.analysis import pred_to_xy
+from cell_count.utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
 
 #Torch convenience functions
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -34,7 +24,7 @@ tonumpy = lambda x: x.cpu().detach().numpy()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--im_path",   default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/549594/',     type=str)
-parser.add_argument("--csv_path",  default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/549594/csv/', type=str)
+parser.add_argument("--csv_path",  default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/TESTS/', type=str)
 
 def main(im_path=None,csv_path=None):
 
@@ -46,7 +36,6 @@ def main(im_path=None,csv_path=None):
 
     model.to(device)
     print(f'Validation loss was {loss:0.8f}')
-    #Set model in eval mode
     model.eval()
 
     patch_size = 260
@@ -78,7 +67,7 @@ def main(im_path=None,csv_path=None):
 
         pred_datagen = iter(pred_dataloader)
 
-        #Empty subtile for labels:
+        # empty subtile for labels:
         n_labels = 3
         x_size = pred_dataset.output_size*pred_sampler.n_x_patch_per_subtile
         y_size = pred_dataset.output_size*pred_sampler.n_y_patch_per_subtile
@@ -86,9 +75,9 @@ def main(im_path=None,csv_path=None):
         offset = int((pred_dataset.patch_size - pred_dataset.output_size)/2)
         new_csv=True
 
-        #Each batch has 1 subtile. 
+        # each batch has 1 subtile. 
         for _ in tqdm(range(len(pred_datagen))):
-            #Init empty subtile
+            # init empty subtile
             pred_g = np.empty(shape=[n_labels, x_size, y_size], dtype=float)
             pred_r = np.empty(shape=[n_labels, x_size, y_size], dtype=float)
 
@@ -108,7 +97,7 @@ def main(im_path=None,csv_path=None):
             com_g,n_elem_g = pred_to_xy(fg=np.squeeze(pred_g[2,:,:]),bo=np.squeeze(pred_g[1,:,:]),pred_thr=0.5,n_elem_thr=5)
             com_r,n_elem_r = pred_to_xy(fg=np.squeeze(pred_r[2,:,:]),bo=np.squeeze(pred_r[1,:,:]),pred_thr=0.5,n_elem_thr=5)
 
-            #Convert patch co-ordinates into global co-ordinates
+            # convert patch co-ordinates into global co-ordinates
             global_com_g = com_g + subtile_ind.reshape(1, 2) + offset
             global_com_r = com_r + subtile_ind.reshape(1, 2) + offset
 

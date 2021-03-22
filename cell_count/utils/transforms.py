@@ -60,7 +60,7 @@ class My_RandomGamma(torch.nn.Module):
             R_im= F.to_pil_image(sample['im'][1,:,:])
             G_im = F.adjust_gamma(G_im,random.choice(self.gamma_list),gain=1)
             R_im = F.adjust_gamma(R_im,random.choice(self.gamma_list),gain=1)
-            #G_im = F.pil_to_tensor(G_im) --> This gives UserWarning, see https://github.com/pytorch/vision/issues/2194
+            #G_im = F.pil_to_tensor(G_im) --> This raises UserWarning, see https://github.com/pytorch/vision/issues/2194
             #R_im = F.pil_to_tensor(R_im)
             G_im = torch.as_tensor(np.expand_dims(np.array(G_im),axis=0))
             R_im = torch.as_tensor(np.expand_dims(np.array(R_im),axis=0))

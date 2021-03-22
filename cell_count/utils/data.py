@@ -6,7 +6,6 @@ import torch
 from torch.utils.data import Dataset,Sampler
 from aicsimageio import imread
 from pathlib import Path
-from timebudget import timebudget as time
 
 
 def convert_u16_to_u8(im_u16):
@@ -33,7 +32,6 @@ def jp2_to_zarr(file_list, destination:str,overwrite=False):
         elif overwrite:
             print(f'====> Ignored: {file}')
     return
-
 
 
 def nonzero_row_col(zarr_file,verbose=True):
@@ -200,7 +198,7 @@ class Ai224_RG_Dataset(Dataset):
 class RandomSampler(Sampler):
     r"""Returns indices to randomly specify patches tiles in the dataset.
 
-    Arguments:
+    Args:
         n_tiles (int): number of tiles in the dataset
         max_x (int): max value of x that is used to cut a patch from the tile, i.e. x:x+patch_size
         max_y (int): max value of y that is used to cut a patch from the tile, i.e. y:y+patch_size
@@ -309,7 +307,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
 class Pred_Sampler(Sampler):
     r"""Returns indices to sequentially generate patches as per dataset spec.
 
-    Arguments:
+    Args:
         dataset: object of a Dataset class
     """
 
