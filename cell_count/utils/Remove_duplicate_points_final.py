@@ -1,37 +1,22 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 from sklearn.neighbors import KDTree
 import numpy as np
 import random
-import dask.array as da
-import napari
 import pandas as pd
-import zarr
 
-get_ipython().run_line_magic('gui', 'qt')
-
-def remove_duplicate_points(coord_path, zarr_img_path, r=10):
+def remove_duplicate_points(coord, r=10, cell_size=50):
     """
     Removes points that redundantly mark the same cell as another point. Takes in the file path
     to a .csv containing x-coordinates, y-coordinates, and the sizes of corresponding cells for
-    each point, the path to a .zarr image file and (optionally) the radius used to identify
+    each point and (optionally) the radius used to identify
     points that are close together. Returns a list containing a numpy array of points that were
     not removed from the input .csv and a numpy array of points that were removed from the input
     .csv file.
     """
-    #coordinates from input csv
-    coord = np.loadtxt(coord_path, skiprows=1, delimiter=',')
-    #image slice from .zarr file
-    image = da.from_zarr(zarr_img_path)
-    
+        
     #removing points identifying cells smaller than 50 pixels
     coord_df = pd.DataFrame(coord)
     coord_df.columns = ['y', 'x', 'size']
-    size_over_50 = coord_df['size'] >= 50
+    size_over_50 = coord_df['size'] >= cell_size
     coord_df = coord_df[size_over_50]
     coord_s50 = coord_df.to_numpy()
     
@@ -56,5 +41,5 @@ def remove_duplicate_points(coord_path, zarr_img_path, r=10):
     
     coord_s50_clean = np.array([i for j, i in enumerate(coord_s50) if j not in indices_to_drop])
     coord_s50_removed = np.array([i for j, i in enumerate(coord_s50) if j in indices_to_drop])
-    return [coord_s50_clean, coord_s50_removed];
+    return coord_s50_clean, coord_s50_removed;
 
