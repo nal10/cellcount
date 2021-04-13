@@ -10,12 +10,15 @@ import glob
 import numpy as np
 import pandas as pd
 import torch
+import time
 from cell_count.models.unet import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from cell_count.utils.analysis import pred_to_xy
 from cell_count.utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
 from cell_count.utils.post_processing import remove_duplicate_points
+
+start_time = time.time()
 
 #Torch convenience functions
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -137,6 +140,7 @@ def main(im_path=None,csv_path=None):
                 df_r_clean.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
                 df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
 
+    print('Segmentation took {} hours'.format(round((time.time() - start_time)/3600,2)))
     return
 
 if __name__ == "__main__":
