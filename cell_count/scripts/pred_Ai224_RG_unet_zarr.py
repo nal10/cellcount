@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from cell_count.utils.analysis import pred_to_xy
 from cell_count.utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
-from cell_count.utils.Remove_duplicate_points_final import remove_duplicate_points
+from cell_count.utils.post_processing import remove_duplicate_points
 
 #Torch convenience functions
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -101,33 +101,41 @@ def main(im_path=None,csv_path=None):
             # convert patch co-ordinates into global co-ordinates
             global_com_g = com_g + subtile_ind.reshape(1, 2) + offset
             global_com_r = com_r + subtile_ind.reshape(1, 2) + offset
-	    
-	    #removing duplicate points
-	    coord_s50_clean, coord_s50_removed = remove_duplicate_points(global_com_g, r=10, cell_size=50)
-	    df_g = pd.DataFrame({'x':coord_s50_clean[:,0],'y':coord_s50_clean[:,1],'n':n_elem_g})
+
+            df_g = pd.DataFrame({'x':global_com_g[:,0],'y':global_com_g[:,1],'n':n_elem_g})
+            df_r = pd.DataFrame({'x':global_com_r[:,0],'y':global_com_r[:,1],'n':n_elem_r})
+
+	        # Write to csv
+            df_g = pd.DataFrame({'x':global_com_g[:,0],'y':global_com_g[:,1],'n':n_elem_g})
+            df_r = pd.DataFrame({'x':global_com_r[:,0],'y':global_com_r[:,1],'n':n_elem_r})
             if new_csv:
                 df_g.to_csv(csv_path+csv_fname_g, mode='w', header=True, index=False)
+                df_r.to_csv(csv_path+csv_fname_r, mode='w', header=True, index=False)
                 new_csv = False
             else:
                 df_g.to_csv(csv_path+csv_fname_g, mode='a', header=False, index=False)
-
-	    coord_s50_clean, coord_s50_removed = remove_duplicate_points(global_com_r, r=10, cell_size=50)	
-            df_r = pd.DataFrame({'x':coord_s50_clean[:,0],'y':coord_s50_clean[:,1],'n':n_elem_r})
-	    if new_csv:
-		df_r.to_csv(csv_path+csv_fname_r, mode='w', header=True, index=False)
-	    else:
-		df_r.to_csv(csv_path+csv_fname_r, mode='a', header=False, index=False)		
-	    	    
-	    #Write to csv
-           # df_g = pd.DataFrame({'x':global_com_g[:,0],'y':global_com_g[:,1],'n':n_elem_g})
-           # df_r = pd.DataFrame({'x':global_com_r[:,0],'y':global_com_r[:,1],'n':n_elem_r})
-           # if new_csv:
-            #    df_g.to_csv(csv_path+csv_fname_g, mode='w', header=True, index=False)
-             #   df_r.to_csv(csv_path+csv_fname_r, mode='w', header=True, index=False)
-              #  new_csv = False
-           # else:
-            #    df_g.to_csv(csv_path+csv_fname_g, mode='a', header=False, index=False)
-             #   df_r.to_csv(csv_path+csv_fname_r, mode='a', header=False, index=False)
+                df_r.to_csv(csv_path+csv_fname_r, mode='a', header=False, index=False)
+            
+            #write post-processed df to csv
+            coord_g_clean, coord_g_removed = remove_duplicate_points(df_g, r=10, n=50)
+            df_g_clean = pd.DataFrame({'x':coord_g_clean[:,0],'y':coord_g_clean[:,1],'n':coord_g_clean[:,2]})
+            df_g_removed = pd.DataFrame({'x':coord_removed_g[:,0],'y':coord_removed_g[:,1],'n':coord_removed_g[:,2]})
+            
+            coord_r_clean, coord_r_removed = remove_duplicate_points(df_r, r=10, n=50)
+            df_r_clean = pd.DataFrame({'x':coord_r_clean[:,0],'y':coord_r_clean[:,1],'n':coord_r_clean[:,2]})
+            df_r_removed = pd.DataFrame({'x':coord_removed_r[:,0],'y':coord_removed_r[:,1],'n':coord_removed_r[:,2]})
+            
+            if new_csv:
+                df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g, mode='w', header=True, index=False)
+                df_g_removed.to_csv(csv_path+'processed/'csv_fname_g, mode='w', header=True, index=False)
+                df_r_clean.to_csv(csv_path+'processed/'csv_fname_r, mode='w', header=True, index=False)
+                df_r_removed.to_csv(csv_path+'processed/'csv_fname_r, mode='w', header=True, index=False)
+                new_csv = False
+            else:
+                df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g, mode='a', header=False, index=False)
+                df_g_removed.to_csv(csv_path+'processed/'+csv_fname_g, mode='a', header=False, index=False)
+                df_r_clean.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
+                df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
 
     return
 
