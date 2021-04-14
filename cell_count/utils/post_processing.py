@@ -4,11 +4,11 @@ import random
 import pandas as pd
 
 def remove_duplicate_points(coord, r=10, n=50):
-    
+
     """
-    Removes points that redundantly mark the same cell as another point. Takes in the dataframe 
-    containing x-coordinates, y-coordinates, and the sizes of corresponding cells for each point 
-    and (optionally) the radius used to identify points that are close together. Returns arrays 
+    Removes points that redundantly mark the same cell as another point. Takes in the dataframe
+    containing x-coordinates, y-coordinates, and the sizes of corresponding cells for each point
+    and (optionally) the radius used to identify points that are close together. Returns arrays
     of points that were not removed and points that were removed.
     """
 

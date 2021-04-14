@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import torch
 import time
+import os
 from cell_count.models.unet import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -27,8 +28,8 @@ tensor_ = lambda x: torch.as_tensor(x).to(dtype=torch.float32).to(device)
 tonumpy = lambda x: x.cpu().detach().numpy()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--im_path",   default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/549594/',     type=str)
-parser.add_argument("--csv_path",  default='/home/rohan/Remote-AI-root/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/TESTS/', type=str)
+parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/546117/', type=str)
+parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/TESTS/', type=str)
 
 def main(im_path=None,csv_path=None):
 
@@ -79,7 +80,7 @@ def main(im_path=None,csv_path=None):
         offset = int((pred_dataset.patch_size - pred_dataset.output_size)/2)
         new_csv=True
 
-        # each batch has 1 subtile. 
+        # each batch has 1 subtile.
         for _ in tqdm(range(len(pred_datagen))):
             # init empty subtile
             pred_g = np.empty(shape=[n_labels, x_size, y_size], dtype=float)
@@ -118,27 +119,24 @@ def main(im_path=None,csv_path=None):
             else:
                 df_g.to_csv(csv_path+csv_fname_g, mode='a', header=False, index=False)
                 df_r.to_csv(csv_path+csv_fname_r, mode='a', header=False, index=False)
-            
-            #write post-processed df to csv
-            coord_g_clean, coord_g_removed = remove_duplicate_points(df_g, r=10, n=50)
-            df_g_clean = pd.DataFrame({'x':coord_g_clean[:,0],'y':coord_g_clean[:,1],'n':coord_g_clean[:,2]})
-            df_g_removed = pd.DataFrame({'x':coord_removed_g[:,0],'y':coord_removed_g[:,1],'n':coord_removed_g[:,2]})
-            
-            coord_r_clean, coord_r_removed = remove_duplicate_points(df_r, r=10, n=50)
-            df_r_clean = pd.DataFrame({'x':coord_r_clean[:,0],'y':coord_r_clean[:,1],'n':coord_r_clean[:,2]})
-            df_r_removed = pd.DataFrame({'x':coord_removed_r[:,0],'y':coord_removed_r[:,1],'n':coord_removed_r[:,2]})
-            
-            if new_csv:
-                df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g, mode='w', header=True, index=False)
-                df_g_removed.to_csv(csv_path+'processed/'csv_fname_g, mode='w', header=True, index=False)
-                df_r_clean.to_csv(csv_path+'processed/'csv_fname_r, mode='w', header=True, index=False)
-                df_r_removed.to_csv(csv_path+'processed/'csv_fname_r, mode='w', header=True, index=False)
-                new_csv = False
-            else:
-                df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g, mode='a', header=False, index=False)
-                df_g_removed.to_csv(csv_path+'processed/'+csv_fname_g, mode='a', header=False, index=False)
-                df_r_clean.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
-                df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r, mode='a', header=False, index=False)
+
+        #write post-processed df to csv
+        df_g_total = pd.read_csv(csv_path+csv_fname_g)
+        df_r_total = pd.read_csv(csv_path+csv_fname_r)
+
+        if not os.path.exists(csv_path+'processed/'):
+            os.makedirs(csv_path+'processed/')
+        coord_g_clean, coord_g_removed = remove_duplicate_points(df_g_total, r=10, n=50)
+        df_g_clean = pd.DataFrame({'x':coord_g_clean[:,0],'y':coord_g_clean[:,1],'n':coord_g_clean[:,2]})
+        df_g_removed = pd.DataFrame({'x':coord_g_removed[:,0],'y':coord_g_removed[:,1],'n':coord_g_removed[:,2]})
+        df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_nodups.csv', header=True, index=False)
+        df_g_removed.to_csv(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_removed.csv', header=True, index=False)
+
+        coord_r_clean, coord_r_removed = remove_duplicate_points(df_r_total, r=10, n=50)
+        df_r_clean = pd.DataFrame({'x':coord_r_clean[:,0],'y':coord_r_clean[:,1],'n':coord_r_clean[:,2]})
+        df_r_removed = pd.DataFrame({'x':coord_r_removed[:,0],'y':coord_r_removed[:,1],'n':coord_r_removed[:,2]})
+        df_r_clean.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_nodups.csv', header=True, index=False)
+        df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_removed.csv', header=True, index=False)
 
     print('Segmentation took {} hours'.format(round((time.time() - start_time)/3600,2)))
     return
