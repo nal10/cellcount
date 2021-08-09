@@ -11,10 +11,15 @@ cell_r = [cell_x,cell_y];
 IM = padarray(IM,padsizevec);
 T = padarray(T,padsizevec,inf);
 D = padarray(D,padsizevec,max(D(:)));
-S = S + padsize;
+
 cell_r = cell_r + padsize;
 
-S_ind = sub2ind(size(D),S(:,1),S(:,2));
+if numel(S)>0
+    S = S + padsize;
+    S_ind = sub2ind(size(D),S(:,1),S(:,2));
+else
+    S_ind = [];
+end
 D(S_ind)=max(D(:));
 
 %Ignore beyond the typical cell radius
