@@ -6,4 +6,5 @@ for f=1:numel(fnames)
     [Labels,~] = lbl_from_FM(F.IM,F.S,F.D,F.T);
     labelfile = strrep([labels_dir,fnames{f}],'.mat','_labels.tif');
     imwrite(Labels,labelfile)
+    drawnow;
 end
