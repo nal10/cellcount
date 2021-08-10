@@ -258,13 +258,13 @@ class Pred_Ai224_RG_Dataset(Dataset):
         R_IM = get_arr(R_IM_file)
 
         assert G_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
-        assert R_IM.dtype=='uint8', "transform pipeline tested only for uint8 input"
-        
+        assert R_IM.dtype == 'uint8', "transform pipeline tested only for uint8 input"
+
         #(tiles,channels,x,y)
-        IM_list.append(np.expand_dims(np.concatenate([G_IM,R_IM],axis=0),axis=0))
+        IM_list.append(np.expand_dims(np.concatenate([G_IM, R_IM], axis=0), axis=0))
 
         IM_shape = IM_list[0].shape[-2:]
-        
+
         n_x_patches = np.ceil(IM_shape[0]/output_size).astype(int)
         n_y_patches = np.ceil(IM_shape[1]/output_size).astype(int)
 
@@ -274,7 +274,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
         pad_yf = int(n_y_patches*output_size + (patch_size-output_size)/2 - IM_shape[1])
         
         self.IM = np.pad(np.concatenate(IM_list,axis=0),pad_width=[[0,0],[0,0],[pad_xi,pad_xf],[pad_yi,pad_yf]],mode='reflect')
-        
+
         self.n_tiles = self.IM.shape[0]
         self.tile_shape_orig = IM_shape[-2:]
         self.tile_shape_padded = np.array(self.IM.shape[-2:])
@@ -289,7 +289,7 @@ class Pred_Ai224_RG_Dataset(Dataset):
 
         self.n_x_patches = n_x_patches
         self.n_y_patches = n_y_patches
-        
+
         return
 
     def __len__(self):

@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 import time
 import os
-from cell_count.models.unet import Ai224_RG_UNet
+from cell_count.models import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from cell_count.utils.analysis import pred_to_xy
@@ -31,7 +31,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/546117/', type=str)
 parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/TESTS/', type=str)
 
-def main(im_path=None,csv_path=None):
+
+def main(im_path=None, csv_path=None):
 
     model = Ai224_RG_UNet()
     ckpt_file = '../../../dat/Ai224_RG_models/CE_wt244_Adam_run_v3_norm/44587_ckpt.pt'

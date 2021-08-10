@@ -1,10 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-
-
-
-
 
 class UNet(nn.Module):
     def __init__(self):

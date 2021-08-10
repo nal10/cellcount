@@ -1,13 +1,12 @@
 #### Problem description:
-
- - Cells labeled with red, green or both markers appear in 2-channel images.
- - The degree of bleed-through across imaging channels could be slightly different for each animal
+ - Cells labeled with red, green or both markers appear in 2-channel images
+ - Degree of bleed-through across imaging channels is different for each animal
  
 #### Training dataset:
  - Approximate cell centers are marked in each channel
  - Size of a single channel 2048 x 2048 image is 32.0 Mb
- - (both channels for images + labels) for a 20 images = ~1.25 Gb 
- - Load it all in cpu memory for patch generation while training.
+ - (both channels for images + labels) for a 20 images = ~1.25 Gb
+ - Load it all in cpu memory for patch generation while training
  
 ```bash
 .
@@ -41,7 +40,8 @@
 
  - Use `pip install -e .` to enable importing of functions as `from cell_count.utils.data import function as f`
  - trained models are here: [dropbox link](https://www.dropbox.com/sh/19qthlltaq92431/AAAlpO_fFAH5eorzfY60q3_Ja?dl=0).
- - commit `3e952`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment.
+ - commit `3e952`: Input is scaled, equal weights used for cross-entropy loss. 60,000 epoch experiment
+ - Pixel-wise ground truth codes adapted from (topo-preserve-fastmarching repository)[https://github.com/rhngla/topo-preserve-fastmarching]
 
 #### Prediction of cell centers on full brain images
  - Each slice takes ~`500 s` just for I/O from .zarr format. 
