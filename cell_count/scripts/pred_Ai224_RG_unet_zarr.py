@@ -15,9 +15,8 @@ import os
 from cell_count.models import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from cell_count.utils.analysis import pred_to_xy
+from cell_count.utils.analysis import pred_to_xy, remove_duplicate_points_postprocessing
 from cell_count.utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
-from cell_count.utils.post_processing import remove_duplicate_points
 
 start_time = time.time()
 
@@ -28,14 +27,14 @@ tensor_ = lambda x: torch.as_tensor(x).to(dtype=torch.float32).to(device)
 tonumpy = lambda x: x.cpu().detach().numpy()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/546117/', type=str)
-parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/TESTS/', type=str)
+parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/559279/', type=str)
+parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/559279/retrained_45000/', type=str)
 
 
 def main(im_path=None, csv_path=None):
 
     model = Ai224_RG_UNet()
-    ckpt_file = '../../../dat/Ai224_RG_models/CE_wt244_Adam_run_v3_norm/44587_ckpt.pt'
+    ckpt_file = '../../../dat/Ai224_RG_models/control_retraining_combined/45000_ckpt.pt'
     checkpoint = torch.load(ckpt_file, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     loss = checkpoint['loss']
@@ -125,19 +124,26 @@ def main(im_path=None, csv_path=None):
         df_g_total = pd.read_csv(csv_path+csv_fname_g)
         df_r_total = pd.read_csv(csv_path+csv_fname_r)
 
+        #remove duplicate points green
         if not os.path.exists(csv_path+'processed/'):
             os.makedirs(csv_path+'processed/')
-        coord_g_clean, coord_g_removed = remove_duplicate_points(df_g_total, r=10, n=50)
+        coord_g_clean, coord_g_removed = remove_duplicate_points_postprocessing(df_g_total, r=10, n=50)
         df_g_clean = pd.DataFrame({'x':coord_g_clean[:,0],'y':coord_g_clean[:,1],'n':coord_g_clean[:,2]})
-        df_g_removed = pd.DataFrame({'x':coord_g_removed[:,0],'y':coord_g_removed[:,1],'n':coord_g_removed[:,2]})
         df_g_clean.to_csv(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_nodups.csv', header=True, index=False)
-        df_g_removed.to_csv(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_removed.csv', header=True, index=False)
-
-        coord_r_clean, coord_r_removed = remove_duplicate_points(df_r_total, r=10, n=50)
+        if coord_g_removed.size == 0:
+            pass
+        else:
+            df_g_removed = pd.DataFrame({'x':coord_g_removed[:,0],'y':coord_g_removed[:,1],'n':coord_g_removed[:,2]})
+            df_g_removed.to_csv(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_removed.csv', header=True, index=False)
+        #remove duplicate points red
+        coord_r_clean, coord_r_removed = remove_duplicate_points_postprocessing(df_r_total, r=10, n=50)
         df_r_clean = pd.DataFrame({'x':coord_r_clean[:,0],'y':coord_r_clean[:,1],'n':coord_r_clean[:,2]})
-        df_r_removed = pd.DataFrame({'x':coord_r_removed[:,0],'y':coord_r_removed[:,1],'n':coord_r_removed[:,2]})
         df_r_clean.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_nodups.csv', header=True, index=False)
-        df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_removed.csv', header=True, index=False)
+        if coord_r_removed.size == 0:
+            pass
+        else:
+            df_r_removed = pd.DataFrame({'x':coord_r_removed[:,0],'y':coord_r_removed[:,1],'n':coord_r_removed[:,2]})
+            df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_removed.csv', header=True, index=False)
 
     print('Segmentation took {} hours'.format(round((time.time() - start_time)/3600,2)))
     return
