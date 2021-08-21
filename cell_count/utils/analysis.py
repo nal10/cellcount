@@ -5,7 +5,7 @@ import numpy as np
 from scipy import ndimage
 
 def pred_to_xy(fg, bo, pred_thr=0.5, n_elem_thr=10):
-    """Uses prediction images for foreground and boundary to determine cell center co-ordinates. 
+    """Uses prediction images for foreground and boundary to determine cell center co-ordinates.
 
     Args:
         fg: foreground prediction image
@@ -48,7 +48,7 @@ def remove_duplicate_points_postprocessing(coord, r=10, n=50):
     Removes points that redundantly mark the same cell as another point. Takes in the dataframe
     containing x-coordinates, y-coordinates, and the sizes of corresponding cells for each point
     and (optionally) the radius used to identify points that are close together. Returns arrays
-    of points that were not removed and points that were removed. Author: Cameron Trader
+    of points that were not removed and points that were removed.
     """
 
     df_size_thresholded = coord['n'] >= n
