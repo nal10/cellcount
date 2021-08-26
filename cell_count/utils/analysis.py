@@ -74,3 +74,33 @@ def remove_duplicate_points_postprocessing(coord, r=10, n=50):
     coord_removed = np.array([i for j, i in enumerate(coord_subset) if j in indices_to_drop])
 
     return coord_clean, coord_removed
+
+def identify_yellow_points(coord_r, coord_g, dist=8):
+    red_zeroes = np.zeros((coord_r.shape[0],1))
+    green_ones = np.ones((coord_g.shape[0],1))
+
+    #0 for red, 1 for green
+    coord_r = np.append(coord_r, red_zeroes, axis=1)
+    coord_g = np.append(coord_g, green_ones, axis=1)
+    coord_full = np.append(coord_r, coord_g, axis=0)
+
+    kdt = KDTree(coord_full[:,:2], leaf_size=20, metric='euclidean')
+    close_red_dist, close_red_ind = kdt.query(coord_full[:len(coord_r),:2], k=2)
+    close_red_ind = np.sort(close_red_ind)
+
+    close_indices = []
+    indices_to_drop =[]
+    for i, j in zip(close_red_ind, close_red_dist):
+        if j[1]<=dist:
+            if not list(i) in close_indices:
+                coord_full[i[0]][3]=2
+                indices_to_drop.append(i[1])
+                close_indices.append(list(i))
+
+    coord_clean = np.array([i for j, i in enumerate(coord_full) if j not in indices_to_drop])
+
+    red_cells = coord_clean[coord_clean[:, 3] == 0][:,:3]
+    green_cells = coord_clean[coord_clean[:, 3] == 1][:,:3]
+    yellow_cells = coord_clean[coord_clean[:, 3] == 2][:,:3]
+
+    return red_cells, green_cells, yellow_cells
