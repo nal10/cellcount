@@ -15,7 +15,7 @@ import os
 from cell_count.models import Ai224_RG_UNet
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from cell_count.utils.analysis import pred_to_xy, remove_duplicate_points_postprocessing
+from cell_count.utils.analysis import pred_to_xy, remove_duplicate_points_postprocessing, identify_yellow_points
 from cell_count.utils.data import Pred_Ai224_RG_Zarr, Pred_Sampler_Zarr
 
 start_time = time.time()
@@ -27,8 +27,8 @@ tensor_ = lambda x: torch.as_tensor(x).to(dtype=torch.float32).to(device)
 tonumpy = lambda x: x.cpu().detach().numpy()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/559279/', type=str)
-parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/559279/retrained_45000/', type=str)
+parser.add_argument("--im_path",   default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/575823/', type=str)
+parser.add_argument("--csv_path",  default='/home/elyse/allen/programs/celltypes/workgroups/mct-t200/Molecular_Genetics_Daigle_Team/Elyse/Unet_WB_testing/575823/csv/', type=str)
 
 
 def main(im_path=None, csv_path=None):
@@ -144,6 +144,12 @@ def main(im_path=None, csv_path=None):
         else:
             df_r_removed = pd.DataFrame({'x':coord_r_removed[:,0],'y':coord_r_removed[:,1],'n':coord_r_removed[:,2]})
             df_r_removed.to_csv(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_removed.csv', header=True, index=False)
+
+        #identify yellow points
+        red_cells, green_cells, yellow_cells = identify_yellow_points(df_r_clean, df_g_clean, dist=8)
+        np.savetxt(csv_path+'processed/'+csv_fname_r.split('.')[0]+'_final.csv', red_cells, delimiter=",", fmt='%s')
+        np.savetxt(csv_path+'processed/'+csv_fname_g.split('.')[0]+'_final.csv', green_cells, delimiter=",", fmt='%s')
+        np.savetxt(csv_path+'processed/'+csv_fname_r.split('_r.')[0]+'_y_final.csv', yellow_cells, delimiter=",", fmt='%s')
 
     print('Segmentation took {} hours'.format(round((time.time() - start_time)/3600,2)))
     return

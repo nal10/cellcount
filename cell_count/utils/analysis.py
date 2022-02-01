@@ -70,8 +70,14 @@ def remove_duplicate_points_postprocessing(coord, r=10, n=50):
             index = random.randrange(len(k))
             indices_to_drop.append(k[index])
             del k[index]
+    header = ['x','y','n']
     coord_clean = np.array([i for j, i in enumerate(coord_subset) if j not in indices_to_drop])
     coord_removed = np.array([i for j, i in enumerate(coord_subset) if j in indices_to_drop])
+    coord_clean = np.vstack([header, coord_clean])
+    if coord_removed.size==0:
+        pass
+    else:
+        coord_removed = np.vstack([header, coord_removed])
 
     return coord_clean, coord_removed
 
@@ -82,6 +88,8 @@ def identify_yellow_points(coord_r, coord_g, dist=8):
     #0 for red, 1 for green
     coord_r = np.append(coord_r, red_zeroes, axis=1)
     coord_g = np.append(coord_g, green_ones, axis=1)
+    coord_r = np.delete(coord_r, (0), axis=0)
+    coord_g = np.delete(coord_g, (0), axis=0)
     coord_full = np.append(coord_r, coord_g, axis=0)
 
     kdt = KDTree(coord_full[:,:2], leaf_size=20, metric='euclidean')
@@ -99,8 +107,12 @@ def identify_yellow_points(coord_r, coord_g, dist=8):
 
     coord_clean = np.array([i for j, i in enumerate(coord_full) if j not in indices_to_drop])
 
+    #header = ['x','y','n']
     red_cells = coord_clean[coord_clean[:, 3] == 0][:,:3]
     green_cells = coord_clean[coord_clean[:, 3] == 1][:,:3]
     yellow_cells = coord_clean[coord_clean[:, 3] == 2][:,:3]
+    #red_cells = np.vstack([header, red_cells])
+    #green_cells = np.vstack([header, green_cells])
+    #yellow_cells = np.vstack([header, yellow_cells])
 
     return red_cells, green_cells, yellow_cells
